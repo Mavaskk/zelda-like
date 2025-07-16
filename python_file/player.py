@@ -1,5 +1,6 @@
 # Importazioni
 from settings import *
+from Inventory import Inventory
 
 
 
@@ -7,6 +8,7 @@ class Player(pygame.sprite.Sprite):
 	def __init__(self,collision_sprites):
 		super().__init__()
 		self.screen = pygame.display.get_surface()
+		self.inventory = Inventory(self)
 
 		self.import_sprites()
 		self.image = self.walk_right[0]
@@ -34,17 +36,20 @@ class Player(pygame.sprite.Sprite):
 		self.life = 3
 		self.prev_life = self.life
 		self.coin_count = 0
+		self.bag = []
+
+	
 
 	def import_sprites(self):
-		self.walk_right = [pygame.image.load(f'../game_settembre/assets/player/walking/right/walk_right_{i}.png').convert_alpha() for i in range(0, 5)]
-		self.walk_back = [pygame.image.load(f'../game_settembre/assets/player/walking/back/walk_back_{i}.png').convert_alpha() for i in range(1, 6)]
-		self.walk_front = [pygame.image.load(f'../game_settembre/assets/player/walking/front/walk_front_{i}.png').convert_alpha() for i in range(1, 6)]
-		self.hit_sword_right = [pygame.image.load(f'../game_settembre/assets/player/hit/right/hit_right_{i}.png').convert_alpha() for i in range(1, 6)]
-		self.hit_sword_front = [pygame.image.load(f'../game_settembre/assets/player/hit/front/hit_front_{i}.png').convert_alpha() for i in range(1, 6)]
-		self.hit_sword_back = [pygame.image.load(f'../game_settembre/assets/player/hit/up/hit_up_{i}.png').convert_alpha() for i in range(1, 6)]
-		self.hurt_back = [pygame.image.load(f'../game_settembre/assets/player/hurt/back/hurt_back_{i}.png').convert_alpha() for i in range(1, 5)]
-		self.hurt_right = [pygame.image.load(f'../game_settembre/assets/player/hurt/right/hurt_right_{i}.png').convert_alpha() for i in range(1, 5)]
-		self.hurt_front = [pygame.image.load(f'../game_settembre/assets/player/hurt/front/hurt_front_{i}.png').convert_alpha() for i in range(1, 5)]
+		self.walk_right = [pygame.image.load(f'../zelda-like/assets/player/walking/right/walk_right_{i}.png').convert_alpha() for i in range(0, 5)]
+		self.walk_back = [pygame.image.load(f'../zelda-like/assets/player/walking/back/walk_back_{i}.png').convert_alpha() for i in range(1, 6)]
+		self.walk_front = [pygame.image.load(f'../zelda-like/assets/player/walking/front/walk_front_{i}.png').convert_alpha() for i in range(1, 6)]
+		self.hit_sword_right = [pygame.image.load(f'../zelda-like/assets/player/hit/right/hit_right_{i}.png').convert_alpha() for i in range(1, 6)]
+		self.hit_sword_front = [pygame.image.load(f'../zelda-like/assets/player/hit/front/hit_front_{i}.png').convert_alpha() for i in range(1, 6)]
+		self.hit_sword_back = [pygame.image.load(f'../zelda-like/assets/player/hit/up/hit_up_{i}.png').convert_alpha() for i in range(1, 6)]
+		self.hurt_back = [pygame.image.load(f'../zelda-like/assets/player/hurt/back/hurt_back_{i}.png').convert_alpha() for i in range(1, 5)]
+		self.hurt_right = [pygame.image.load(f'../zelda-like/assets/player/hurt/right/hurt_right_{i}.png').convert_alpha() for i in range(1, 5)]
+		self.hurt_front = [pygame.image.load(f'../zelda-like/assets/player/hurt/front/hurt_front_{i}.png').convert_alpha() for i in range(1, 5)]
 
 
 
@@ -82,46 +87,46 @@ class Player(pygame.sprite.Sprite):
 	# 				self.last_hit = current_time
 	# 		if not self.hit:
 	# 			self.animation_walk(moving)
-	def input(self):
-		keys = pygame.key.get_pressed()
-		moving = False
+	#def input(self):
+		# keys = pygame.key.get_pressed()
+		# moving = False
 
-		if keys[pygame.K_d]:  # Destra
-			self.rect.x += self.speed
-			self.direction = "right"
-			self.collision("horizontal")
-			moving = True
-		elif keys[pygame.K_a]:  # Sinistra
-			self.rect.x -= self.speed
-			self.direction = "left"
-			self.collision("horizontal")
-			moving = True
-		elif keys[pygame.K_s]:  # Giù
-			self.rect.y += self.speed
-			self.direction = "down"
-			self.collision("vertical")
-			moving = True
-		elif keys[pygame.K_w]:  # Su
-			self.rect.y -= self.speed
-			self.direction = "up"
-			self.collision("vertical")
-			moving = True
+		# if keys[pygame.K_d]:  # Destra
+		# 	self.rect.x += self.speed
+		# 	self.direction = "right"
+		# 	self.collision("horizontal")
+		# 	moving = True
+		# elif keys[pygame.K_a]:  # Sinistra
+		# 	self.rect.x -= self.speed
+		# 	self.direction = "left"
+		# 	self.collision("horizontal")
+		# 	moving = True
+		# elif keys[pygame.K_s]:  # Giù
+		# 	self.rect.y += self.speed
+		# 	self.direction = "down"
+		# 	self.collision("vertical")
+		# 	moving = True
+		# elif keys[pygame.K_w]:  # Su
+		# 	self.rect.y -= self.speed
+		# 	self.direction = "up"
+		# 	self.collision("vertical")
+		# 	moving = True
 
-		# Attacco con il tasto F
-		if keys[pygame.K_f] and not self.hit:
-			current_time = pygame.time.get_ticks()
-			if current_time - self.last_hit > 400:
-				self.hit = True
-				self.last_hit = current_time
+		# # Attacco con il tasto F
+		# if keys[pygame.K_f] and not self.hit:
+		# 	current_time = pygame.time.get_ticks()
+		# 	if current_time - self.last_hit > 400:
+		# 		self.hit = True
+		# 		self.last_hit = current_time
 
-		#entra in shop con tasto G
-		if keys[pygame.K_g] and not self.hit:
-			self.g_pressed = True
+		# #entra in shop con tasto G
+		# if keys[pygame.K_g] and not self.hit:
+		# 	self.g_pressed = True
 			
 
 
-		if not self.hit:
-			self.animation_walk(moving,self.walk_right,self.walk_back,self.walk_front)
+		# if not self.hit:
+		# 	self.animation_walk(moving,self.walk_right,self.walk_back,self.walk_front)
 
 
 
@@ -141,6 +146,7 @@ class Player(pygame.sprite.Sprite):
 		self.image = sprite_map[self.direction][int(self.current_frame)]
 		if self.direction == "left":
 			self.image = pygame.transform.flip(self.image, True, False)
+
 
 	def animation(self, animation_on, right, up, down):
 		sprite_map = {
@@ -194,10 +200,9 @@ class Player(pygame.sprite.Sprite):
 
 	def update(self):
 		# if not self.damage_taken:  
-		self.input()  # Blocca input se è morto
+		# self.input()  # Blocca input se è morto
 
 		self.death()
-		print(self.g_pressed)
 
 		if self.hit and not self.damage_taken: 
 			self.animation_on = True 

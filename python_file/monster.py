@@ -5,7 +5,7 @@ class Monster(pygame.sprite.Sprite):
 	def __init__(self, pos, groups, player):
 		super().__init__(groups)		
 
-		self.walk_front = [pygame.image.load(f'../game_settembre/assets/monster_slime/idle/idle_{i}.png').convert_alpha() for i in range(1, 6)]
+		self.walk_front = [pygame.image.load(f'../zelda-like/assets/monster_slime/idle/idle_{i}.png').convert_alpha() for i in range(1, 6)]
 		self.image = self.walk_front[0]
 		self.rect = self.image.get_rect(topleft = pos)   
 		self.speed = 2

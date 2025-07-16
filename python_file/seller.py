@@ -6,7 +6,6 @@ class Seller(pygame.sprite.Sprite):
         self.image = surf
         self.item_list = []
         self.rect = self.image.get_rect(topleft = pos)
-        # self.speed_position_rect = pygame.Rect(23e2)   
 
     def trade(self):
         pass

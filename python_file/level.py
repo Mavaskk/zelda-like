@@ -4,10 +4,13 @@ from monster import *
 from map_setup import *
 from hud import *
 from seller import *
+from Item import *
 
 
 class Level():
 	def __init__(self, game_surface):
+		super().__init__()
+
 
 		self.game_surface = game_surface
 
@@ -16,6 +19,7 @@ class Level():
 		self.collision_sprites = pygame.sprite.Group()
 		self.monster_sprites = pygame.sprite.Group()
 		self.market_sprites = pygame.sprite.Group()
+		self.pickup_items_grups = pygame.sprite.Group()
 
 		self.map_grid = [
 			["overworld_room1", "overworld_room2","overworld_room3"],
@@ -25,30 +29,94 @@ class Level():
 		]
 
 		self.map_files = {
-			"overworld_room1": '../game_settembre/assets/tileset/file_tmx/overworld_room1.tmx',
-			"overworld_room2": '../game_settembre/assets/tileset/file_tmx/overworld_room2.tmx',
-			"overworld_room3": '../game_settembre/assets/tileset/file_tmx/overworld_room3.tmx',
-			"overworld_room4": '../game_settembre/assets/tileset/file_tmx/overworld_room4.tmx',
-			"overworld_room5": '../game_settembre/assets/tileset/file_tmx/overworld_room5.tmx',
-			"overworld_room6": '../game_settembre/assets/tileset/file_tmx/overworld_room6.tmx',
-			"overworld_room7": '../game_settembre/assets/tileset/file_tmx/overworld_room7.tmx',
-			"overworld_room8": '../game_settembre/assets/tileset/file_tmx/overworld_room8.tmx',
-			"overworld_room9": '../game_settembre/assets/tileset/file_tmx/overworld_room9.tmx',
+			"overworld_room1": '../zelda-like/assets/tileset/file_tmx/overworld_room1.tmx',
+			"overworld_room2": '../zelda-like/assets/tileset/file_tmx/overworld_room2.tmx',
+			"overworld_room3": '../zelda-like/assets/tileset/file_tmx/overworld_room3.tmx',
+			"overworld_room4": '../zelda-like/assets/tileset/file_tmx/overworld_room4.tmx',
+			"overworld_room5": '../zelda-like/assets/tileset/file_tmx/overworld_room5.tmx',
+			"overworld_room6": '../zelda-like/assets/tileset/file_tmx/overworld_room6.tmx',
+			"overworld_room7": '../zelda-like/assets/tileset/file_tmx/overworld_room7.tmx',
+			"overworld_room8": '../zelda-like/assets/tileset/file_tmx/overworld_room8.tmx',
+			"overworld_room9": '../zelda-like/assets/tileset/file_tmx/overworld_room9.tmx',
 		}
 
 		self.current_row = 0
 		self.current_col = 0
+
+		#bol
 		self.market_on = False
+		self.inventory_key = False 
+
 		self.current_map_key = self.map_grid[self.current_row][self.current_col]
 		self.tmx_map = pytmx.load_pygame(self.map_files[self.current_map_key])
 		
-		self.market_map_path =  "../game_settembre/assets/tileset/file_tmx/market_1.tmx"
+		self.market_map_path =  "../zelda-like/assets/tileset/file_tmx/market_1.tmx"
 
 		self.player = Player(self.collision_sprites) 
 		self.hud = Hud(self.player)
+		self.game_state = "gameplay"
 		self.setup()
 		# self.setup_market(self.market_map_path)
 		self.all_sprites.add(self.player)
+
+	def handle_input(self):
+
+		keys = pygame.key.get_pressed()
+		moving = False
+
+		if keys[pygame.K_g]:
+			if not self.g_pressed:
+				if self.game_state == "gameplay":
+					self.game_state = "inventory"
+				elif self.game_state == "inventory":
+					self.game_state = "gameplay"
+				print("Stato gioco:", self.game_state)
+				self.g_pressed = True
+		else:
+			self.g_pressed = False
+
+		if self.game_state == "gameplay" :
+			if keys[pygame.K_d]:  # Destra
+				self.player.rect.x += self.player.speed
+				self.player.direction = "right"
+				self.player.collision("horizontal")
+				moving = True
+			elif keys[pygame.K_a]:  # Sinistra
+				self.player.rect.x -= self.player.speed
+				self.player.direction = "left"
+				self.player.collision("horizontal")
+				moving = True
+			elif keys[pygame.K_s]:  # Giù
+				self.player.rect.y += self.player.speed
+				self.player.direction = "down"
+				self.player.collision("vertical")
+				moving = True
+			elif keys[pygame.K_w]:  # Su
+				self.player.rect.y -= self.player.speed
+				self.player.direction = "up"
+				self.player.collision("vertical")
+				moving = True
+			elif keys[pygame.K_e]:
+				for item in self.pickup_items_grups:
+					if self.player.rect.colliderect(item):
+						self.player.inventory.add_item(item)
+						item.kill()
+
+
+			# Attacco con il tasto F
+			if keys[pygame.K_f] and not self.player.hit:
+				current_time = pygame.time.get_ticks()
+				if current_time - self.player.last_hit > 400:
+					self.player.hit = True
+					self.player.last_hit = current_time
+
+		if self.game_state == "inventory":
+			for items in self.player.bag:
+				print(items.power)
+
+		if not self.player.hit:
+			self.player.animation_walk(moving,self.player.walk_right,self.player.walk_back,self.player.walk_front)
+
 
 	def setup(self):
 		#svuota i gruppi di sprites
@@ -68,6 +136,13 @@ class Level():
 		
 		for x, y, surf in self.tmx_map.get_layer_by_name("objects").tiles():
 			Structures((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites))
+
+		for x, y, surf in self.tmx_map.get_layer_by_name("life_powerUp").tiles():
+			Item((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.pickup_items_grups),"potion")
+
+
+		for x, y, surf in self.tmx_map.get_layer_by_name("shield_powerUp").tiles():
+			Item((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.pickup_items_grups),"shield")
 
 		for x, y, surf in self.tmx_map.get_layer_by_name("slime").tiles():
 			self.monster = Monster((x * TILE_SIZE, y * TILE_SIZE),  (self.all_sprites,self.monster_sprites), self.player)
@@ -155,13 +230,19 @@ class Level():
 	def run(self):
 		self.game_surface.fill((0, 0, 0))
 		self.all_sprites.update()
-		self.collide_player_to_monster()
+		self.handle_input()
 		self.change_map()
 		self.market()
-
 		self.all_sprites.draw(self.game_surface)
 		self.hud.draw(self.game_surface)
-		#pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.hitbox, 2)
+		self.collide_player_to_monster()
+
+		if self.game_state == "inventory":
+			self.hud.invetory(self.game_surface)
+
+
+
+		# pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.hitbox, 2)
 		# for monster in self.monster_sprites:
 		# 	pygame.draw.rect(self.game_surface, (255, 0, 0), monster.activate_rect, 2)
 
