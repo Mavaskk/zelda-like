@@ -5,6 +5,8 @@ from map_setup import *
 from hud import *
 from seller import *
 from Item import *
+from Inventory import Inventory
+
 
 
 class Level():
@@ -54,6 +56,7 @@ class Level():
 
 		self.player = Player(self.collision_sprites) 
 		self.hud = Hud(self.player)
+		self.inventory = Inventory(self.player,self.game_surface)
 		self.game_state = "gameplay"
 		self.setup()
 		# self.setup_market(self.market_map_path)
@@ -68,6 +71,7 @@ class Level():
 			if not self.g_pressed:
 				if self.game_state == "gameplay":
 					self.game_state = "inventory"
+					self.inventory.populate_from_bag(self.player.bag)
 				elif self.game_state == "inventory":
 					self.game_state = "gameplay"
 				print("Stato gioco:", self.game_state)
@@ -96,11 +100,15 @@ class Level():
 				self.player.direction = "up"
 				self.player.collision("vertical")
 				moving = True
-			elif keys[pygame.K_e]:
+			elif keys[pygame.K_e]: #raccogli oggetto
 				for item in self.pickup_items_grups:
 					if self.player.rect.colliderect(item):
-						self.player.inventory.add_item(item)
-						item.kill()
+						if len(self.player.bag) <= 15:
+							self.player.bag.append(item)
+							item.kill()						
+						else:
+							print("inventario pieno")
+
 
 
 			# Attacco con il tasto F
@@ -111,9 +119,8 @@ class Level():
 					self.player.last_hit = current_time
 
 		if self.game_state == "inventory":
-			for items in self.player.bag:
-				print(items.power)
-
+			if keys[pygame.K_d]:  # Destra
+				self.inventory.select_item("right")
 		if not self.player.hit:
 			self.player.animation_walk(moving,self.player.walk_right,self.player.walk_back,self.player.walk_front)
 
@@ -138,7 +145,7 @@ class Level():
 			Structures((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites))
 
 		for x, y, surf in self.tmx_map.get_layer_by_name("life_powerUp").tiles():
-			Item((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.pickup_items_grups),"potion")
+			Item((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.pickup_items_grups),"apple")
 
 
 		for x, y, surf in self.tmx_map.get_layer_by_name("shield_powerUp").tiles():
@@ -238,7 +245,7 @@ class Level():
 		self.collide_player_to_monster()
 
 		if self.game_state == "inventory":
-			self.hud.invetory(self.game_surface)
+			self.inventory.draw()
 
 
 

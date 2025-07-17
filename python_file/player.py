@@ -1,6 +1,5 @@
 # Importazioni
 from settings import *
-from Inventory import Inventory
 
 
 
@@ -8,7 +7,6 @@ class Player(pygame.sprite.Sprite):
 	def __init__(self,collision_sprites):
 		super().__init__()
 		self.screen = pygame.display.get_surface()
-		self.inventory = Inventory(self)
 
 		self.import_sprites()
 		self.image = self.walk_right[0]
