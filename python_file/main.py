@@ -15,7 +15,7 @@ running = True
 class Game:
 	def __init__(self):
 		self.clock = pygame.time.Clock()
-		pygame.display.set_caption("Zelda 1 ")
+		pygame.display.set_caption("Zelda 1")
 		self.level_params = ()
 		self.level = Level(game_surface)
 	def run(self):

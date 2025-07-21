@@ -35,6 +35,8 @@ class Player(pygame.sprite.Sprite):
 		self.prev_life = self.life
 		self.coin_count = 0
 		self.bag = []
+		self.shield = False
+		self.last_shield = 0
 
 	
 

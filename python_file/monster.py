@@ -2,7 +2,7 @@ from settings import *
 import math
 
 class Monster(pygame.sprite.Sprite):
-	def __init__(self, pos, groups, player):
+	def __init__(self, pos, groups, player,):
 		super().__init__(groups)		
 
 		self.walk_front = [pygame.image.load(f'../zelda-like/assets/monster_slime/idle/idle_{i}.png').convert_alpha() for i in range(1, 6)]
@@ -17,6 +17,23 @@ class Monster(pygame.sprite.Sprite):
 		self.player = player
 		self.activate = False
 		self.last_time_hit = pygame.time.get_ticks() 
+		self.shield = False
+
+	def activate_monster(self):
+			collide = pygame.Rect.colliderect(self.activate_rect, self.player.rect)
+			if collide:
+				self.activate = True
+	
+	def check_player_shield(self,shield_status):
+		if shield_status == True:
+			self.shield = True
+		else:
+			self.shield = False
+
+	def death(self):
+		if self.life == 0:
+			self.kill()
+
 
 	def movement(self):
 		self.rect.y -= self.speed
@@ -29,10 +46,7 @@ class Monster(pygame.sprite.Sprite):
 			self.current_frame = 0
 			self.image = self.walk_front[0]
 
-	def activate_monster(self):
-			collide = pygame.Rect.colliderect(self.activate_rect, self.player.rect)
-			if collide:
-				self.activate = True
+
 
 	def move_towards_player(self):
 		if self.activate:
@@ -56,15 +70,15 @@ class Monster(pygame.sprite.Sprite):
 		current_time = pygame.time.get_ticks()
 
 		if self.rect.colliderect(self.player.rect): #mettere un cooldown per ogni hit
-			if current_time - self.last_time_hit >= 500:
-				self.player.life -=1
-				self.last_time_hit = current_time
+			if self.shield == False :
+				if current_time - self.last_time_hit >= 500:
+					self.player.life -=1
+					self.last_time_hit = current_time
+			else:
+				print("mostro non puo colpire")
 		else:
 			self.last_time_hit = current_time
 				
-	def death(self):
-		if self.life == 0:
-			self.kill()
 
 	def update(self):
 		self.activate_monster()

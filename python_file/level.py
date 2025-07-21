@@ -48,6 +48,8 @@ class Level():
 		#bol
 		self.market_on = False
 		self.inventory_key = False 
+		self.g_pressed = False
+
 
 		self.current_map_key = self.map_grid[self.current_row][self.current_col]
 		self.tmx_map = pytmx.load_pygame(self.map_files[self.current_map_key])
@@ -55,12 +57,29 @@ class Level():
 		self.market_map_path =  "../zelda-like/assets/tileset/file_tmx/market_1.tmx"
 
 		self.player = Player(self.collision_sprites) 
-		self.hud = Hud(self.player)
+		self.hud = Hud(self.player,self.game_surface)
 		self.inventory = Inventory(self.player,self.game_surface)
 		self.game_state = "gameplay"
 		self.setup()
-		# self.setup_market(self.market_map_path)
+		self.setup_market(self.market_map_path) #accedi direttamente al market
 		self.all_sprites.add(self.player)
+
+		
+
+	def apply_item_to_player(self,item):
+
+		if item is not None:
+			if item.type == "apple":
+				self.player.life += item.power
+			if item.type == "shield":
+				# self.activate_shield(item.power)
+				self.player.shield = True
+				self.player.last_shield = pygame.time.get_ticks()
+		else:
+			print("troppe vite") #fai apparire messaggio di errore
+
+
+		
 
 	def handle_input(self):
 
@@ -118,9 +137,31 @@ class Level():
 					self.player.hit = True
 					self.player.last_hit = current_time
 
+
 		if self.game_state == "inventory":
-			if keys[pygame.K_d]:  # Destra
-				self.inventory.select_item("right")
+			current_time = pygame.time.get_ticks()
+			cooldown = 200
+			if current_time - self.inventory.move_time > cooldown:			
+				if keys[pygame.K_d]:  # Destra
+					self.inventory.handle_input("right")
+					self.inventory.move_time = current_time
+				if keys[pygame.K_a]:  # Destra
+					self.inventory.handle_input("left")
+					self.inventory.move_time = current_time
+				if keys[pygame.K_e]:  # togli oggetto
+					remove_cooldown = 200
+					current_time_remove = pygame.time.get_ticks()
+					if current_time_remove - self.inventory.last_remove_time > remove_cooldown:
+						self.inventory.remove_item()
+						self.inventory.last_remove_time = current_time_remove
+				if keys[pygame.K_f]:  # togli oggetto
+					use_cooldown = 200
+					current_time_use = pygame.time.get_ticks()
+					if current_time_use - self.inventory.last_use_time > use_cooldown:
+						item = self.inventory.use_item()
+						self.apply_item_to_player(item)
+						self.inventory.last_use_time = current_time_use
+				
 		if not self.player.hit:
 			self.player.animation_walk(moving,self.player.walk_right,self.player.walk_back,self.player.walk_front)
 
@@ -225,6 +266,13 @@ class Level():
 		self.setup()
 		self.player.add(self.all_sprites)
 
+	def update_shield(self):
+		current_time = pygame.time.get_ticks()
+
+		# Se è passato il tempo limite, lo scudo si disattiva
+		if self.player.shield and (current_time - self.player.last_shield > 5000):
+			self.player.shield = False	
+
 	#collsione del player con i mostri
 	def collide_player_to_monster(self):
  	# Se il player sta attaccando
@@ -243,9 +291,14 @@ class Level():
 		self.all_sprites.draw(self.game_surface)
 		self.hud.draw(self.game_surface)
 		self.collide_player_to_monster()
+		self.update_shield()
+		self.monster.check_player_shield(self.player.shield)
 
 		if self.game_state == "inventory":
-			self.inventory.draw()
+			self.inventory.update()
+
+		if self.player.shield:
+			self.hud.draw_item_text("shield")
 
 
 
