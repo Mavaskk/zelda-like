@@ -36,8 +36,13 @@ class Player(pygame.sprite.Sprite):
 		self.coin_count = 0
 		self.bag = []
 		self.shield = False
+		self.speed_boost = False
 		self.last_shield = 0
+		self.last_speed_boost = 0
 
+	def apply_speed_bost(self,):
+		self.speed = 6
+		
 	
 
 	def import_sprites(self):
@@ -199,10 +204,10 @@ class Player(pygame.sprite.Sprite):
 
 
 	def update(self):
-		# if not self.damage_taken:  
-		# self.input()  # Blocca input se è morto
-
 		self.death()
+
+		if self.speed_boost:
+			self.apply_speed_bost()
 
 		if self.hit and not self.damage_taken: 
 			self.animation_on = True 

@@ -1,7 +1,9 @@
 from settings import *
 
 class Item(pygame.sprite.Sprite):
-    def __init__(self, pos, surf, groups, item_type):
+    def __init__(self, pos = None, surf = None, groups = None, item_type = ""):
+        if groups == None:
+            groups = []
         super().__init__(groups)
         self.power = None
         self.image = surf
@@ -12,3 +14,4 @@ class Item(pygame.sprite.Sprite):
             self.power = +1
         elif self.type == 'shield':
             self.power = 2000  
+

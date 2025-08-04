@@ -8,7 +8,9 @@ class Inventory(pygame.sprite.Sprite):
 		self.item_inventory = pygame.image.load('../zelda-like/assets/hud/inventory.png').convert_alpha()
 		self.apple = pygame.image.load('../zelda-like/assets/tileset/apple.png').convert_alpha()
 		self.shield = pygame.image.load('../zelda-like/assets/tileset/shield_powerup.png').convert_alpha()
+		self.speed = pygame.image.load('../zelda-like/assets/tileset/speed_potion.png').convert_alpha()
 		
+		self.speed = pygame.transform.scale(self.speed, (30, 30))
 		self.apple = pygame.transform.scale(self.apple, (30, 30))
 		self.shield = pygame.transform.scale(self.shield, (28, 28))
 		self.item_inventory = pygame.transform.scale(self.item_inventory, (200, 200))
@@ -82,6 +84,8 @@ class Inventory(pygame.sprite.Sprite):
 				item.icon = self.apple
 			elif item.type == "shield":
 				item.icon = self.shield
+			elif item.type == "speed":
+				item.icon = self.speed
 
 
 		self.inventory_grid = bag

@@ -29,6 +29,7 @@ class Monster(pygame.sprite.Sprite):
 			self.shield = True
 		else:
 			self.shield = False
+			
 
 	def death(self):
 		if self.life == 0:

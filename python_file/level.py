@@ -51,23 +51,25 @@ class Level():
 		self.g_pressed = False
 
 
+
 		self.current_map_key = self.map_grid[self.current_row][self.current_col]
 		self.tmx_map = pytmx.load_pygame(self.map_files[self.current_map_key])
 		
 		self.market_map_path =  "../zelda-like/assets/tileset/file_tmx/market_1.tmx"
+		self.potion = pygame.image.load('../zelda-like/assets/market/potions/speed_potion.png').convert_alpha()
+
 
 		self.player = Player(self.collision_sprites) 
 		self.hud = Hud(self.player,self.game_surface)
 		self.inventory = Inventory(self.player,self.game_surface)
 		self.game_state = "gameplay"
 		self.setup()
-		self.setup_market(self.market_map_path) #accedi direttamente al market
+		# self.setup_market(self.market_map_path) #accedi direttamente al market
 		self.all_sprites.add(self.player)
 
 		
 
 	def apply_item_to_player(self,item):
-
 		if item is not None:
 			if item.type == "apple":
 				self.player.life += item.power
@@ -75,6 +77,10 @@ class Level():
 				# self.activate_shield(item.power)
 				self.player.shield = True
 				self.player.last_shield = pygame.time.get_ticks()
+			if item.type == "speed":
+				self.player.speed_boost = True
+				self.player.last_speed_boost = pygame.time.get_ticks()
+
 		else:
 			print("troppe vite") #fai apparire messaggio di errore
 
@@ -86,7 +92,7 @@ class Level():
 		keys = pygame.key.get_pressed()
 		moving = False
 
-		if keys[pygame.K_g]:
+		if keys[pygame.K_g]: #apri inventario
 			if not self.g_pressed:
 				if self.game_state == "gameplay":
 					self.game_state = "inventory"
@@ -120,16 +126,36 @@ class Level():
 				self.player.collision("vertical")
 				moving = True
 			elif keys[pygame.K_e]: #raccogli oggetto
-				for item in self.pickup_items_grups:
-					if self.player.rect.colliderect(item):
-						if len(self.player.bag) <= 15:
-							self.player.bag.append(item)
-							item.kill()						
-						else:
-							print("inventario pieno")
+				if self.market_on:
+					if self.seller.talking:
+						if self.player.coin_count >= 10:
+							current_time_buy = pygame.time.get_ticks() 
+							cooldown_buy = 400
+							if len(self.player.bag) <= 15:
+								if current_time_buy - self.seller.last_buy > cooldown_buy:
+									potion = self.seller.trade()
+									self.player.bag.append(potion)
+									self.player.coin_count -= 10  
+									self.seller.last_buy = current_time_buy
+				else:
+					for item in self.pickup_items_grups:
+						if self.player.rect.colliderect(item):
+							if len(self.player.bag) <= 15:
+								self.player.bag.append(item)
+								item.kill()						
+							else:
+								print("inventario pieno")
+			elif keys[pygame.K_q]: #parla con il mercante
+				current_time_talk = pygame.time.get_ticks()
+				cooldown_talk = 200
+				if self.market_on:
+					if self.player.rect.colliderect(self.seller.hitbox):
+						if current_time_talk - self.seller.last_talk > cooldown_talk:
+							self.seller.talking = not self.seller.talking
+							
+							self.seller.last_talk = current_time_talk
 
-
-
+						
 			# Attacco con il tasto F
 			if keys[pygame.K_f] and not self.player.hit:
 				current_time = pygame.time.get_ticks()
@@ -154,7 +180,7 @@ class Level():
 					if current_time_remove - self.inventory.last_remove_time > remove_cooldown:
 						self.inventory.remove_item()
 						self.inventory.last_remove_time = current_time_remove
-				if keys[pygame.K_f]:  # togli oggetto
+				if keys[pygame.K_f]:  # usa oggetto
 					use_cooldown = 200
 					current_time_use = pygame.time.get_ticks()
 					if current_time_use - self.inventory.last_use_time > use_cooldown:
@@ -211,7 +237,7 @@ class Level():
 			Structures((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.collision_sprites))
 
 		for x, y, surf in tmx_map.get_layer_by_name("seller").tiles():
-			self.seller = Seller((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites))
+			self.seller = Seller((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites),self.game_surface)
 
 		self.market_on = True
 
@@ -220,15 +246,15 @@ class Level():
 		self.player.rect.y = 400
 
 
-
-
-
-
 	def market(self):
 		if self.market_on:
-			#entra in shop con tasto G
-			if self.player.g_pressed:
-				self.seller.display_market(self.game_surface)
+			self.seller.display_market(self.game_surface)
+			if self.seller.talking:
+				if self.player.coin_count < 10:
+					self.seller.draw_no_coin_text()
+
+				else:
+					self.seller.draw_item_speed_potion()
 
 	def change_map(self):
 
@@ -268,10 +294,20 @@ class Level():
 
 	def update_shield(self):
 		current_time = pygame.time.get_ticks()
+		shield_duration = 5000
 
 		# Se è passato il tempo limite, lo scudo si disattiva
-		if self.player.shield and (current_time - self.player.last_shield > 5000):
+		if self.player.shield and (current_time - self.player.last_shield > shield_duration):
 			self.player.shield = False	
+
+	def update_speed(self):
+		current_time = pygame.time.get_ticks()
+		speed_duration = 5000
+
+		# Se è passato il tempo limite, lo pozione si disattiva
+		if self.player.speed_boost and (current_time - self.player.last_speed_boost > speed_duration):
+			self.player.speed_boost = False	
+			self.player.speed = 3
 
 	#collsione del player con i mostri
 	def collide_player_to_monster(self):
@@ -287,12 +323,15 @@ class Level():
 		self.all_sprites.update()
 		self.handle_input()
 		self.change_map()
-		self.market()
 		self.all_sprites.draw(self.game_surface)
 		self.hud.draw(self.game_surface)
 		self.collide_player_to_monster()
 		self.update_shield()
+		self.update_speed()
 		self.monster.check_player_shield(self.player.shield)
+		self.market()
+
+
 
 		if self.game_state == "inventory":
 			self.inventory.update()
@@ -300,7 +339,8 @@ class Level():
 		if self.player.shield:
 			self.hud.draw_item_text("shield")
 
-
+		if self.player.speed_boost:
+			self.hud.draw_item_text("speed")
 
 		# pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.hitbox, 2)
 		# for monster in self.monster_sprites:
