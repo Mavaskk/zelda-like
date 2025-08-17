@@ -42,6 +42,8 @@ class Level():
 			"overworld_room9": '../zelda-like/assets/tileset/file_tmx/overworld_room9.tmx',
 		}
 
+		self.picked_items = [] 
+
 		self.current_row = 0
 		self.current_col = 0
 
@@ -141,7 +143,9 @@ class Level():
 					for item in self.pickup_items_grups:
 						if self.player.rect.colliderect(item):
 							if len(self.player.bag) <= 15:
+								# print(item)
 								self.player.bag.append(item)
+								self.picked_items.append(item)
 								item.kill()						
 							else:
 								print("inventario pieno")
@@ -192,6 +196,7 @@ class Level():
 			self.player.animation_walk(moving,self.player.walk_right,self.player.walk_back,self.player.walk_front)
 
 
+
 	def setup(self):
 		#svuota i gruppi di sprites
 		self.collision_sprites.empty()
@@ -212,11 +217,10 @@ class Level():
 			Structures((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites))
 
 		for x, y, surf in self.tmx_map.get_layer_by_name("life_powerUp").tiles():
-			Item((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.pickup_items_grups),"apple")
-
+			self.should_render_item(x,y,surf,"apple")
 
 		for x, y, surf in self.tmx_map.get_layer_by_name("shield_powerUp").tiles():
-			Item((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.pickup_items_grups),"shield")
+			self.should_render_item(x,y,surf,"shield")
 
 		for x, y, surf in self.tmx_map.get_layer_by_name("slime").tiles():
 			self.monster = Monster((x * TILE_SIZE, y * TILE_SIZE),  (self.all_sprites,self.monster_sprites), self.player)
@@ -245,6 +249,18 @@ class Level():
 		self.player.rect.x = 30
 		self.player.rect.y = 400
 
+	def should_render_item(self,x,y,surf,type):
+		if self.picked_items == []:
+				Item((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.pickup_items_grups),type)
+		else:
+			already_collected = False
+			for item in self.picked_items: #non uso la bag del player cosi quando uso un oggetto questo non ricompare dopo sulla mappa perchè non è più nell'invetario
+				if item.rect.x == x * TILE_SIZE and item.rect.y == y * TILE_SIZE: #confronto le x e y delle sprite con quelle delle sprite
+					already_collected = True
+					break
+			if not already_collected: #render item non ancora raccolti
+				Item((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites, self.pickup_items_grups), type)	
+
 
 	def market(self):
 		if self.market_on:
@@ -259,6 +275,8 @@ class Level():
 	def change_map(self):
 
 		if self.player.rect.x > WIDTH:
+			if self.market_on:
+				self.market_on = False
 			self.update_position(0, 1)
 			self.player.rect.x = 10
 
@@ -319,6 +337,8 @@ class Level():
 					self.player.coin_count +=0.5
 
 	def run(self):
+		if self.player.bag != []:
+			print(f"{len(self.player.bag)}")
 		self.game_surface.fill((0, 0, 0))
 		self.all_sprites.update()
 		self.handle_input()
