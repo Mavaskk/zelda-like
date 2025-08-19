@@ -6,6 +6,7 @@ from hud import *
 from seller import *
 from Item import *
 from Inventory import Inventory
+from Key import *
 
 
 
@@ -15,6 +16,7 @@ class Level():
 
 
 		self.game_surface = game_surface
+		
 
 
 		self.all_sprites = pygame.sprite.Group()
@@ -22,6 +24,12 @@ class Level():
 		self.monster_sprites = pygame.sprite.Group()
 		self.market_sprites = pygame.sprite.Group()
 		self.pickup_items_grups = pygame.sprite.Group()
+		self.portal_sprites = pygame.sprite.Group()
+
+		#keys drop from monsters
+		self.key = Key()
+		self.last_monster_death_rect = None
+		self.key_spawn_time = None
 
 		self.map_grid = [
 			["overworld_room1", "overworld_room2","overworld_room3"],
@@ -48,9 +56,10 @@ class Level():
 		self.current_col = 0
 
 		#bol
-		self.market_on = False
+		self.market_status = False
 		self.inventory_key = False 
 		self.g_pressed = False
+		self.key_drop_status = False
 
 
 
@@ -84,10 +93,16 @@ class Level():
 				self.player.last_speed_boost = pygame.time.get_ticks()
 
 		else:
-			print("troppe vite") #fai apparire messaggio di errore
+			print("item non utilizzabile") #fai apparire messaggio di errore
 
+	def clear_sprites(self):
+		#svuota i gruppi di sprites
+		self.collision_sprites.empty()
+		self.pickup_items_grups.empty()
+		self.all_sprites.empty()
+		self.monster_sprites.empty() 
+		self.market_sprites.empty()		
 
-		
 
 	def handle_input(self):
 
@@ -128,7 +143,7 @@ class Level():
 				self.player.collision("vertical")
 				moving = True
 			elif keys[pygame.K_e]: #raccogli oggetto
-				if self.market_on:
+				if self.market_status:
 					if self.seller.talking:
 						if self.player.coin_count >= 10:
 							current_time_buy = pygame.time.get_ticks() 
@@ -143,7 +158,7 @@ class Level():
 					for item in self.pickup_items_grups:
 						if self.player.rect.colliderect(item):
 							if len(self.player.bag) <= 15:
-								# print(item)
+								print(item)
 								self.player.bag.append(item)
 								self.picked_items.append(item)
 								item.kill()						
@@ -152,7 +167,7 @@ class Level():
 			elif keys[pygame.K_q]: #parla con il mercante
 				current_time_talk = pygame.time.get_ticks()
 				cooldown_talk = 200
-				if self.market_on:
+				if self.market_status:
 					if self.player.rect.colliderect(self.seller.hitbox):
 						if current_time_talk - self.seller.last_talk > cooldown_talk:
 							self.seller.talking = not self.seller.talking
@@ -182,7 +197,8 @@ class Level():
 					remove_cooldown = 200
 					current_time_remove = pygame.time.get_ticks()
 					if current_time_remove - self.inventory.last_remove_time > remove_cooldown:
-						self.inventory.remove_item()
+						if self.inventory.remove_item() == "key":
+							self.player.key_counter -= 1
 						self.inventory.last_remove_time = current_time_remove
 				if keys[pygame.K_f]:  # usa oggetto
 					use_cooldown = 200
@@ -198,11 +214,7 @@ class Level():
 
 
 	def setup(self):
-		#svuota i gruppi di sprites
-		self.collision_sprites.empty()
-		self.all_sprites.empty()
-		self.monster_sprites.empty() 
-		self.market_sprites.empty()
+		self.clear_sprites()
 
 		for x, y, surf in self.tmx_map.get_layer_by_name("ground").tiles():
 			Structures((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites))
@@ -225,13 +237,13 @@ class Level():
 		for x, y, surf in self.tmx_map.get_layer_by_name("slime").tiles():
 			self.monster = Monster((x * TILE_SIZE, y * TILE_SIZE),  (self.all_sprites,self.monster_sprites), self.player)
 
+		if self.current_col == 2 and self.current_row == 2:
+			for x, y, surf in self.tmx_map.get_layer_by_name("portal").tiles():
+				Structures((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.portal_sprites))
+
 
 	def setup_market(self, market_path):
-		self.collision_sprites.empty()
-		self.all_sprites.empty()
-		self.monster_sprites.empty() 
-		self.market_sprites.empty()
-
+		self.clear_sprites()
 		tmx_map = pytmx.load_pygame(market_path)
 
 		for x, y, surf in tmx_map.get_layer_by_name("ground").tiles():
@@ -243,16 +255,13 @@ class Level():
 		for x, y, surf in tmx_map.get_layer_by_name("seller").tiles():
 			self.seller = Seller((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites),self.game_surface)
 
-		self.market_on = True
+		self.market_status = True
 
 
 		self.player.rect.x = 30
 		self.player.rect.y = 400
 
 	def should_render_item(self,x,y,surf,type):
-		if self.picked_items == []:
-				Item((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.pickup_items_grups),type)
-		else:
 			already_collected = False
 			for item in self.picked_items: #non uso la bag del player cosi quando uso un oggetto questo non ricompare dopo sulla mappa perchè non è più nell'invetario
 				if item.rect.x == x * TILE_SIZE and item.rect.y == y * TILE_SIZE: #confronto le x e y delle sprite con quelle delle sprite
@@ -263,7 +272,7 @@ class Level():
 
 
 	def market(self):
-		if self.market_on:
+		if self.market_status:
 			self.seller.display_market(self.game_surface)
 			if self.seller.talking:
 				if self.player.coin_count < 10:
@@ -274,23 +283,34 @@ class Level():
 
 	def change_map(self):
 
-		if self.player.rect.x > WIDTH:
-			if self.market_on:
-				self.market_on = False
-			self.update_position(0, 1)
-			self.player.rect.x = 10
 
-		if self.player.rect.x < 0:
-			self.update_position(0, -1)
-			self.player.rect.x = WIDTH - 10
+		if not self.market_status:	
+			
+			if self.player.rect.x > WIDTH:
+				self.update_position(0, 1)
+				self.player.rect.x = 10
 
-		if self.player.rect.y > HEIGHT:
-			self.update_position(1, 0)
-			self.player.rect.y = 10
+			if self.player.rect.x < 0:
+				self.update_position(0, -1)
+				self.player.rect.x = WIDTH - 10
 
-		if self.player.hitbox.y < 0:
-			self.update_position(-1, 0)
-			self.player.rect.y = HEIGHT -10
+			if self.player.rect.y > HEIGHT:
+				self.update_position(1, 0)
+				self.player.rect.y = 10
+
+			if self.player.hitbox.y < 0:
+				self.update_position(-1, 0)
+				self.player.rect.y = HEIGHT -10
+		
+		
+		else:
+			if self.player.rect.x > WIDTH:
+				self.update_position(0,0)	
+				self.market_status = False	
+				self.player.remove(self.all_sprites) 
+				self.player.add(self.all_sprites) 
+				self.player.rect.x = 55
+				self.player.rect.y = 155
 
 
 		for sprites in self.market_sprites:
@@ -298,6 +318,16 @@ class Level():
 				self.player.remove(self.all_sprites) 
 				self.setup_market(self.market_map_path)
 				self.player.add(self.all_sprites) 
+
+		for sprites in self.portal_sprites:
+			if sprites.rect.colliderect(self.player.hitbox) and self.player.key_counter >= 3:
+				self.player.key_counter -= 3
+				self.player.remove(self.all_sprites) 
+				self.setup_market(self.market_map_path)
+				self.player.add(self.all_sprites) 
+
+
+
 
 	def update_position(self, row_change, col_change):
 		#Aggiorna la posizione della mappa e ricarica gli elementi 
@@ -333,12 +363,26 @@ class Level():
 			collided_monsters = pygame.sprite.spritecollide(self.player, self.monster_sprites, False)
 			for monster in collided_monsters:
 				if self.player.hit: 
+					self.last_monster_death_rect = monster.rect
 					monster.life -= 1  # Riduci la vita del mostro colpito
-					self.player.coin_count +=0.5
+					self.player.coin_count += 0.5
+					if monster.drop_key():
+						self.key_drop_status = True
+						self.key_spawn_time = pygame.time.get_ticks() 
+						print("chiave ottenuta")
+						self.player.key_counter += 1
+						self.player.bag.append(self.key)
+
+
+	def render_drop_key(self):
+		if self.key_drop_status:
+			self.game_surface.blit(self.key.image,self.last_monster_death_rect)			
+			current_time = pygame.time.get_ticks()
+			if current_time - self.key_spawn_time > 750:
+				self.key_drop_status = False
+
 
 	def run(self):
-		if self.player.bag != []:
-			print(f"{len(self.player.bag)}")
 		self.game_surface.fill((0, 0, 0))
 		self.all_sprites.update()
 		self.handle_input()
@@ -348,7 +392,9 @@ class Level():
 		self.collide_player_to_monster()
 		self.update_shield()
 		self.update_speed()
-		self.monster.check_player_shield(self.player.shield)
+		for monster in self.monster_sprites:
+			monster.check_player_shield(self.player.shield)
+
 		self.market()
 
 
@@ -361,6 +407,11 @@ class Level():
 
 		if self.player.speed_boost:
 			self.hud.draw_item_text("speed")
+
+		self.render_drop_key()
+
+		print(self.player.key_counter)
+
 
 		# pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.hitbox, 2)
 		# for monster in self.monster_sprites:

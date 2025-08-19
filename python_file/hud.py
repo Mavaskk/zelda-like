@@ -30,6 +30,10 @@ class Hud(pygame.sprite.Sprite):
 			screen.blit(self.heart_sprite, self.rects3)
 
 
+
+	
+
+
 	def draw_item_text(self,item):
 		if item == "shield":
 			self.screen.blit(self.shield_sprite,pygame.Rect(260,20,32,32))

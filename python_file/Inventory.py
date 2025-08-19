@@ -9,7 +9,6 @@ class Inventory(pygame.sprite.Sprite):
 		self.apple = pygame.image.load('../zelda-like/assets/tileset/apple.png').convert_alpha()
 		self.shield = pygame.image.load('../zelda-like/assets/tileset/shield_powerup.png').convert_alpha()
 		self.speed = pygame.image.load('../zelda-like/assets/tileset/speed_potion.png').convert_alpha()
-		
 		self.speed = pygame.transform.scale(self.speed, (30, 30))
 		self.apple = pygame.transform.scale(self.apple, (30, 30))
 		self.shield = pygame.transform.scale(self.shield, (28, 28))
@@ -60,10 +59,6 @@ class Inventory(pygame.sprite.Sprite):
 
 		pygame.draw.rect(self.screen, "yellow", (x, y, 32, 32), width=2)
 
-
-
-
-
 	def handle_input(self,direction):
 		if direction == "right":
 			if  0 <=self.selected_index <= 14:
@@ -86,21 +81,27 @@ class Inventory(pygame.sprite.Sprite):
 				item.icon = self.shield
 			elif item.type == "speed":
 				item.icon = self.speed
+			# elif item.type == "key":
+			# 	item.icon = self.key.icon
 
 
 		self.inventory_grid = bag
 
 	def remove_item(self):
-		print(self.selected_index)
 		if 0 <= self.selected_index < len(self.inventory_grid) and self.inventory_grid != []:
+			if self.inventory_grid[self.selected_index].type == "key":
+				print("ho rimosso una chiave") 
+				self.inventory_grid.pop(self.selected_index)
+				return "key"
 			self.inventory_grid.pop(self.selected_index)
-			print(self.inventory_grid)
-
+			
 
 	def use_item(self):
 		if 0 <= self.selected_index < len(self.inventory_grid) and self.inventory_grid != []:
 			item = self.inventory_grid[self.selected_index]
 			if item.type == "apple" and self.player.life == 3:
+				return None
+			elif item.type == "key":
 				return None
 			else:
 				self.inventory_grid.pop(self.selected_index)

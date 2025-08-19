@@ -6,9 +6,10 @@ class Monster(pygame.sprite.Sprite):
 		super().__init__(groups)		
 
 		self.walk_front = [pygame.image.load(f'../zelda-like/assets/monster_slime/idle/idle_{i}.png').convert_alpha() for i in range(1, 6)]
+
 		self.image = self.walk_front[0]
 		self.rect = self.image.get_rect(topleft = pos)   
-		self.speed = 2
+		self.speed = 1.7
 		self.life = 2
 		self.animation_speed = 0.18
 		self.current_frame = 0
@@ -25,7 +26,7 @@ class Monster(pygame.sprite.Sprite):
 				self.activate = True
 	
 	def check_player_shield(self,shield_status):
-		if shield_status == True:
+		if shield_status:
 			self.shield = True
 		else:
 			self.shield = False
@@ -35,20 +36,29 @@ class Monster(pygame.sprite.Sprite):
 		if self.life == 0:
 			self.kill()
 
+	def drop_key(self):
+		drop = random.randrange(0, 25) #25 spawn corretto
+		if drop == 4:
+			return True
+
+
+
+	def hit_player(self):
+		current_time = pygame.time.get_ticks()
+
+		if self.rect.colliderect(self.player.rect): #mettere un cooldown per ogni hit
+			if not self.shield :
+				if current_time - self.last_time_hit >= 500:
+					self.player.life -=1
+					self.last_time_hit = current_time
+			else:
+				print("mostro non puo colpire")
+		else:
+			self.last_time_hit = current_time
 
 	def movement(self):
-		self.rect.y -= self.speed
-
-	def standing_animation(self):
-		self.current_frame += self.animation_speed
-		if int(self.current_frame) < len(self.walk_front):
-			self.image = self.walk_front[int(self.current_frame)]
-		else:
-			self.current_frame = 0
-			self.image = self.walk_front[0]
-
-
-
+		self.rect.y -= self.spee
+		
 	def move_towards_player(self):
 		if self.activate:
 			player_x, player_y = self.player.rect.center 
@@ -66,20 +76,14 @@ class Monster(pygame.sprite.Sprite):
 			# Muoviamo il mostro verso il player
 			self.rect.x += dx * self.speed
 			self.rect.y += dy * self.speed
-
-	def hit_player(self):
-		current_time = pygame.time.get_ticks()
-
-		if self.rect.colliderect(self.player.rect): #mettere un cooldown per ogni hit
-			if self.shield == False :
-				if current_time - self.last_time_hit >= 500:
-					self.player.life -=1
-					self.last_time_hit = current_time
-			else:
-				print("mostro non puo colpire")
+	
+	def standing_animation(self):
+		self.current_frame += self.animation_speed
+		if int(self.current_frame) < len(self.walk_front):
+			self.image = self.walk_front[int(self.current_frame)]
 		else:
-			self.last_time_hit = current_time
-				
+			self.current_frame = 0
+			self.image = self.walk_front[0]
 
 	def update(self):
 		self.activate_monster()
