@@ -1,6 +1,7 @@
 import pygame
 import pytmx
 import random
+import math
 
 WIDTH = 512
 HEIGHT = 448

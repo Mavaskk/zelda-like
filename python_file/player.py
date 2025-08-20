@@ -41,7 +41,7 @@ class Player(pygame.sprite.Sprite):
 		self.last_speed_boost = 0
 		self.key_counter = 0
 
-	def apply_speed_bost(self,):
+	def apply_speed_bost(self):
 		self.speed = 6
 		
 	

@@ -67,7 +67,7 @@ class Inventory(pygame.sprite.Sprite):
 			if  1 <=self.selected_index <= 16:
 				self.selected_index -= 1
 
-		print(self.selected_index, len(self.inventory_grid) )
+		# print(self.selected_index, len(self.inventory_grid) )
 
 
 

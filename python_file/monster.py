@@ -1,5 +1,4 @@
 from settings import *
-import math
 
 class Monster(pygame.sprite.Sprite):
 	def __init__(self, pos, groups, player,):
@@ -9,10 +8,10 @@ class Monster(pygame.sprite.Sprite):
 
 		self.image = self.walk_front[0]
 		self.rect = self.image.get_rect(topleft = pos)   
-		self.speed = 1.7
+		self.speed = 1.8
 		self.life = 2
-		self.animation_speed = 0.18
-		self.current_frame = 0
+		self.animation_speed = 0.18 #random.uniform(0.18,0.21) altro modo per randomizzare movimento
+		self.current_frame = random.randrange(0,6) #messo per dare randomicità al movimento delle sprites
 		self.activate_rect = pygame.Rect(0,0 , 150,150)
 		self.activate_rect.center = self.rect.center # per centrare l'area del mostro sul rect del mostro
 		self.player = player
@@ -57,7 +56,7 @@ class Monster(pygame.sprite.Sprite):
 			self.last_time_hit = current_time
 
 	def movement(self):
-		self.rect.y -= self.spee
+		self.rect.y -= self.speed
 		
 	def move_towards_player(self):
 		if self.activate:

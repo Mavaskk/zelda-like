@@ -7,6 +7,7 @@ from seller import *
 from Item import *
 from Inventory import Inventory
 from Key import *
+from Boss import *
 
 
 
@@ -67,16 +68,19 @@ class Level():
 		self.tmx_map = pytmx.load_pygame(self.map_files[self.current_map_key])
 		
 		self.market_map_path =  "../zelda-like/assets/tileset/file_tmx/market_1.tmx"
+		self.dungeon_map_path =  "../zelda-like/assets/tileset/file_tmx/dungeon_room1.tmx"
 		self.potion = pygame.image.load('../zelda-like/assets/market/potions/speed_potion.png').convert_alpha()
 
 
 		self.player = Player(self.collision_sprites) 
 		self.hud = Hud(self.player,self.game_surface)
 		self.inventory = Inventory(self.player,self.game_surface)
+		self.boss = Boss(self.player)
 		self.game_state = "gameplay"
 		self.setup()
 		# self.setup_market(self.market_map_path) #accedi direttamente al market
-		self.all_sprites.add(self.player)
+		self.setup_dungeon(self.dungeon_map_path) #accedi direttamente al market
+		self.all_sprites.add(self.player) #aggiungi il player alle sprite per ultimo cosi non c'è niente sopra
 
 		
 
@@ -158,7 +162,6 @@ class Level():
 					for item in self.pickup_items_grups:
 						if self.player.rect.colliderect(item):
 							if len(self.player.bag) <= 15:
-								print(item)
 								self.player.bag.append(item)
 								self.picked_items.append(item)
 								item.kill()						
@@ -240,6 +243,24 @@ class Level():
 		if self.current_col == 2 and self.current_row == 2:
 			for x, y, surf in self.tmx_map.get_layer_by_name("portal").tiles():
 				Structures((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.portal_sprites))
+
+	def setup_dungeon(self,dungeon_path):
+		self.clear_sprites()
+		tmx_map = pytmx.load_pygame(dungeon_path)
+
+		for x, y, surf in tmx_map.get_layer_by_name("ground").tiles():
+			Structures((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites))
+
+		for x, y, surf in tmx_map.get_layer_by_name("cant_pass").tiles():
+			Structures((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.collision_sprites))
+
+		# for x, y, surf in tmx_map.get_layer_by_name("cant_pass").tiles():
+		# 	Boss((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.monster_sprites))
+
+
+		self.all_sprites.add(self.boss) #aggiungi boss alle sprite per ultimo cosi non ci sono problemi con sovrapposizioni
+
+
 
 
 	def setup_market(self, market_path):
@@ -323,7 +344,8 @@ class Level():
 			if sprites.rect.colliderect(self.player.hitbox) and self.player.key_counter >= 3:
 				self.player.key_counter -= 3
 				self.player.remove(self.all_sprites) 
-				self.setup_market(self.market_map_path)
+				print("entro nel void")
+				print(self.player.key_counter)
 				self.player.add(self.all_sprites) 
 
 
@@ -410,7 +432,7 @@ class Level():
 
 		self.render_drop_key()
 
-		print(self.player.key_counter)
+		# print(self.player.key_counter)
 
 
 		# pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.hitbox, 2)
