@@ -15,15 +15,22 @@ class Boss(pygame.sprite.Sprite):
 		
 		#attributi
 		self.speed = 1
-		self.life = 2
+		self.life = 9
 		self.direction = "right"
-		self.hit = False
+		self.state = "walk"
 		self.moving = False
+		self.last_time_hit = 0
 		self.walking_sprite_map = {
 			"right" : self.walk_right,
 			"left" : self.walk_right,
 			"back" : self.walk_back,
 			"front" : self.walk_front
+		}
+		self.hit_sprite_map = {
+			"right" : self.hit_right,
+			"left" : self.hit_right,
+			"back" : self.hit_back,
+			"front" : self.hit_front
 		}
 		self.last_position_x = self.rect.x
 		self.last_position_y = self.rect.y
@@ -32,17 +39,23 @@ class Boss(pygame.sprite.Sprite):
 		self.player = player
 		
 
-	def animation_walk(self):
+	def animation(self,map):
+			if self.state == "hit":
+				self.animation_speed = 0.15
+			else :
+				self.animation_speed = 0.25
 
-		
-		self.current_frame = self.current_frame + self.animation_speed if not self.hit else 0
-		if self.current_frame >= len(self.walking_sprite_map[self.direction]):
-			self.current_frame = 0
+			self.current_frame = self.current_frame + self.animation_speed 
 
-		# Seleziona sprite e applica flip se necessario
-		self.image = self.walking_sprite_map[self.direction][int(self.current_frame)]
-		if self.direction == "left":
-			self.image = pygame.transform.flip(self.image, True, False)
+			if self.current_frame >= len(map[self.direction]):
+				self.current_frame = 0
+				if self.state == "hit":
+					self.state = "walk"
+
+			# Seleziona sprite e applica flip se necessario
+			self.image = map[self.direction][int(self.current_frame)]
+			if self.direction == "left":
+				self.image = pygame.transform.flip(self.image, True, False)
 
 	def detect_direction(self):
 		#idea quella di prendere ogni volta l'ultima posizione e confrontare x e y, in base a se sono o maggiori o minori vuol dire che il boss sale, scende o dx o sx e da li capisco la posizione
@@ -57,16 +70,20 @@ class Boss(pygame.sprite.Sprite):
 			else:
 				self.direction = "back"
 
-			# print(self.direction, self.rect.x, self.last_position_x)
-			# print(self.direction, self.last_position_y, self.rect.y)
-
 			self.last_position_x = self.rect.x
 			self.last_position_y = self.rect.y
 
-	def hit(self):
+	def hit_player(self):
 		#gestire con il colliderect e dopo un tot far partire il colpo
+		current_time = pygame.time.get_ticks()
+		if self.rect.colliderect(self.player.rect):
+			if current_time - self.last_time_hit >= 3000:
+				self.state = "hit"
+				self.player.life -=1
+				self.last_time_hit = current_time
+			print("collisione avvenuta")
+			
 		
-
 
 	def import_sprites(self):
 		self.walk_right = self.load_and_scale_images('../zelda-like/assets/boss/walking/right/walk_right_{i}.png',6,(88, 88))
@@ -87,11 +104,6 @@ class Boss(pygame.sprite.Sprite):
 			)
 			for i in range(1, count + 1)
 		]
-
-	def movement(self):
-		self.rect.x += self.speed	
-		self.moving = True
-
 	def move_towards_player(self):
 			player_x, player_y = self.player.rect.center 
 			monster_x, monster_y = self.rect.center
@@ -116,8 +128,15 @@ class Boss(pygame.sprite.Sprite):
 		# self.movement()
 		self.move_towards_player()
 		self.detect_direction()
-		if not self.hit:
-			self.animation_walk()
+		self.hit_player()
+
+		if self.life <= 0:
+			self.kill()
+
+		if self.state == "hit":
+			self.animation(self.hit_sprite_map)
+		elif self.state == "walk":
+			self.animation(self.walking_sprite_map)
 
 
 

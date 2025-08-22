@@ -144,14 +144,15 @@ class Player(pygame.sprite.Sprite):
 			"down": down
 			}
 		
-		self.current_frame = self.current_frame + self.animation_speed if moving else 0
-		if self.current_frame >= len(sprite_map[self.direction]):
-			self.current_frame = 0
+		if not self.damage_taken:
+			self.current_frame = self.current_frame + self.animation_speed if moving else 0
+			if self.current_frame >= len(sprite_map[self.direction]):
+				self.current_frame = 0
 
-		# Seleziona sprite e applica flip se necessario
-		self.image = sprite_map[self.direction][int(self.current_frame)]
-		if self.direction == "left":
-			self.image = pygame.transform.flip(self.image, True, False)
+			# Seleziona sprite e applica flip se necessario
+			self.image = sprite_map[self.direction][int(self.current_frame)]
+			if self.direction == "left":
+				self.image = pygame.transform.flip(self.image, True, False)
 
 
 	def animation(self, animation_on, right, up, down):
@@ -196,16 +197,26 @@ class Player(pygame.sprite.Sprite):
 	def death(self):
 		if self.life == 0:
 			self.kill()
-		# if self.life < self.prev_life:
-				# self.damage_taken = True
-		# 		self.animation_on = True 
-		# 		self.animation(self.animation_on,self.hurt_right,self.hurt_back,self.hurt_front)
-		# 		self.prev_life = self.life
+		if self.life < self.prev_life:
+			if self.hit:
+				self.damage_taken = False
+				self.animation_on = False
+				self.current_frame = 0
+				self.prev_life = self.life  # aggiorna comunque la vita
+			else:
+				self.damage_taken = True
+				self.animation_on = True 
+				self.animation(self.animation_on,self.hurt_right,self.hurt_back,self.hurt_front)
+				if not self.animation_on:
+					self.prev_life = self.life
+					self.damage_taken = False
+
+
 
 
 
 	def update(self):
-		self.death()
+		self.death()		
 
 		if self.speed_boost:
 			self.apply_speed_bost()

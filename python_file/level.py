@@ -73,9 +73,9 @@ class Level():
 
 
 		self.player = Player(self.collision_sprites) 
-		self.hud = Hud(self.player,self.game_surface)
-		self.inventory = Inventory(self.player,self.game_surface)
 		self.boss = Boss(self.player)
+		self.hud = Hud(self.player,self.game_surface,self.boss)
+		self.inventory = Inventory(self.player,self.game_surface)
 		self.game_state = "gameplay"
 		self.setup()
 		# self.setup_market(self.market_map_path) #accedi direttamente al market
@@ -184,6 +184,7 @@ class Level():
 				if current_time - self.player.last_hit > 400:
 					self.player.hit = True
 					self.player.last_hit = current_time
+					self.collide_player_to_boss()
 
 
 		if self.game_state == "inventory":
@@ -256,6 +257,10 @@ class Level():
 
 		# for x, y, surf in tmx_map.get_layer_by_name("cant_pass").tiles():
 		# 	Boss((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.monster_sprites))
+
+
+		self.player.rect.x = 30
+		self.player.rect.y = 400
 
 
 		self.all_sprites.add(self.boss) #aggiungi boss alle sprite per ultimo cosi non ci sono problemi con sovrapposizioni
@@ -395,6 +400,13 @@ class Level():
 						self.player.key_counter += 1
 						self.player.bag.append(self.key)
 
+	def collide_player_to_boss(self):
+		if self.player.rect.colliderect(self.boss.rect):
+			if self.player.hit:
+				self.boss.life -= 1
+				print(self.boss.life)
+			print("colpisco il mostro")
+
 
 	def render_drop_key(self):
 		if self.key_drop_status:
@@ -412,6 +424,7 @@ class Level():
 		self.all_sprites.draw(self.game_surface)
 		self.hud.draw(self.game_surface)
 		self.collide_player_to_monster()
+		# self.collide_player_to_boss()
 		self.update_shield()
 		self.update_speed()
 		for monster in self.monster_sprites:
@@ -438,6 +451,7 @@ class Level():
 		# pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.hitbox, 2)
 		# for monster in self.monster_sprites:
 		# 	pygame.draw.rect(self.game_surface, (255, 0, 0), monster.activate_rect, 2)
+		pygame.draw.rect(self.game_surface, (255, 0, 0), self.boss.rect, 2)
 
 
 
