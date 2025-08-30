@@ -184,7 +184,7 @@ class Level():
 				if current_time - self.player.last_hit > 400:
 					self.player.hit = True
 					self.player.last_hit = current_time
-					self.collide_player_to_boss()
+					# self.collide_player_to_boss()
 
 
 		if self.game_state == "inventory":
@@ -402,10 +402,11 @@ class Level():
 
 	def collide_player_to_boss(self):
 		if self.player.rect.colliderect(self.boss.rect):
-			if self.player.hit:
+			if self.player.hit and not self.boss.just_hit:
 				self.boss.life -= 1
+				self.boss.just_hit = True
+				print("player colpito boss")
 				print(self.boss.life)
-			print("colpisco il mostro")
 
 
 	def render_drop_key(self):
@@ -424,7 +425,11 @@ class Level():
 		self.all_sprites.draw(self.game_surface)
 		self.hud.draw(self.game_surface)
 		self.collide_player_to_monster()
-		# self.collide_player_to_boss()
+		self.collide_player_to_boss()
+		
+		if self.boss.fireball_bol:
+			self.game_surface.blit(self.boss.fireball_sprite,self.boss.fireball_rect)
+
 		self.update_shield()
 		self.update_speed()
 		for monster in self.monster_sprites:
@@ -452,6 +457,8 @@ class Level():
 		# for monster in self.monster_sprites:
 		# 	pygame.draw.rect(self.game_surface, (255, 0, 0), monster.activate_rect, 2)
 		pygame.draw.rect(self.game_surface, (255, 0, 0), self.boss.rect, 2)
+		pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.rect, 2)
+		
 
 
 

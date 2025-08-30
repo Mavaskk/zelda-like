@@ -19,6 +19,7 @@ class Boss(pygame.sprite.Sprite):
 		self.direction = "right"
 		self.state = "walk"
 		self.moving = False
+		self.just_hit = False
 		self.last_time_hit = 0
 		self.walking_sprite_map = {
 			"right" : self.walk_right,
@@ -35,9 +36,14 @@ class Boss(pygame.sprite.Sprite):
 		self.last_position_x = self.rect.x
 		self.last_position_y = self.rect.y
 
-		#player
 		self.player = player
 		
+		#fireball
+		self.fireball_last_time = 0
+		self.fireball_bol = False
+		self.fireball_rect = self.fireball_sprite.get_rect()
+		self.fireball_direction = None
+
 
 	def animation(self,map):
 			if self.state == "hit":
@@ -77,21 +83,24 @@ class Boss(pygame.sprite.Sprite):
 		#gestire con il colliderect e dopo un tot far partire il colpo
 		current_time = pygame.time.get_ticks()
 		if self.rect.colliderect(self.player.rect):
-			if current_time - self.last_time_hit >= 3000:
+			if current_time - self.last_time_hit >= 1000:
 				self.state = "hit"
-				self.player.life -=1
+				if not self.player.hit:
+					self.player.life -=1
+				print("boss colpito player")
+
 				self.last_time_hit = current_time
-			print("collisione avvenuta")
 			
 		
 
 	def import_sprites(self):
-		self.walk_right = self.load_and_scale_images('../zelda-like/assets/boss/walking/right/walk_right_{i}.png',6,(88, 88))
-		self.walk_back = self.load_and_scale_images('../zelda-like/assets/boss/walking/back/walk_back_{i}.png',6,(88, 88))
-		self.walk_front = self.load_and_scale_images('../zelda-like/assets/boss/walking/front/walk_front_{i}.png',6,(88, 88))
-		self.hit_right = self.load_and_scale_images('../zelda-like/assets/boss/hit/right/walk_right_{i}.png',12,(88, 88)) 
-		self.hit_front = self.load_and_scale_images('../zelda-like/assets/boss/hit/front/walk_front_{i}.png',12,(88, 88)) 
-		self.hit_back = self.load_and_scale_images('../zelda-like/assets/boss/hit/back/walk_back_{i}.png',12,(88, 88)) 
+		self.walk_right = self.load_and_scale_images('../zelda-like/assets/boss/walking/right/walk_right_{i}.png',6,(60, 60))
+		self.walk_back = self.load_and_scale_images('../zelda-like/assets/boss/walking/back/walk_back_{i}.png',6,(60, 60))
+		self.walk_front = self.load_and_scale_images('../zelda-like/assets/boss/walking/front/walk_front_{i}.png',6,(60, 60))
+		self.hit_right = self.load_and_scale_images('../zelda-like/assets/boss/hit/right/walk_right_{i}.png',12,(60, 60)) 
+		self.hit_front = self.load_and_scale_images('../zelda-like/assets/boss/hit/front/walk_front_{i}.png',12,(60, 60)) 
+		self.hit_back = self.load_and_scale_images('../zelda-like/assets/boss/hit/back/walk_back_{i}.png',12,(60, 60)) 
+		self.fireball_sprite = pygame.transform.scale(pygame.image.load(f'../zelda-like/assets/boss/fireball/fireball.png').convert_alpha(),(60,60))
 
 	def load_and_scale_images(self, path_pattern, count, size):
 		#count numero immagini da caricare
@@ -123,20 +132,51 @@ class Boss(pygame.sprite.Sprite):
 			self.rect.x += dx * self.speed
 			self.rect.y += dy * self.speed	
 
+	def throw_fireball(self):
+		current_time = pygame.time.get_ticks()
+		if current_time - self.fireball_last_time >= 5000:
+			start_x = self.rect.x
+			start_y = self.rect.y
+			
+			self.fireball_rect = self.fireball_sprite.get_rect(topleft=(start_x,start_y))
+			self.fireball_direction = self.direction
+
+			self.fireball_bol = True
+			print("lancio sfera")
+			self.fireball_last_time = current_time
+	
+		if self.fireball_bol:
+			if self.fireball_direction == "right":
+				self.fireball_rect.x += 3
+			elif self.fireball_direction == "left":
+				self.fireball_rect.x -= 3
+			elif self.fireball_direction == "front":
+				self.fireball_rect.y += 3
+			else:
+				self.fireball_rect.y -= 3
+			
+
+
 
 	def update(self):
-		# self.movement()
 		self.move_towards_player()
 		self.detect_direction()
+
 		self.hit_player()
 
 		if self.life <= 0:
 			self.kill()
+		
+		if not self.player.hit:
+			self.just_hit = False
 
 		if self.state == "hit":
 			self.animation(self.hit_sprite_map)
 		elif self.state == "walk":
 			self.animation(self.walking_sprite_map)
+
+		self.throw_fireball()
+
 
 
 

@@ -171,12 +171,22 @@ class Player(pygame.sprite.Sprite):
 				self.animation_on = False
 
 			# Seleziona sprite e applica flip se necessario
-			self.image = sprite_map[self.direction][int(self.current_frame)]
+			new_image = sprite_map[self.direction][int(self.current_frame)]
 			if self.direction == "left":
-				self.image = pygame.transform.flip(self.image, True, False)
+				new_image = pygame.transform.flip(new_image, True, False)
+
+			#aggiorno immagine e rect mantenendo posizione
+			pos = self.rect.topleft
+			self.image = new_image
+			self.rect = self.image.get_rect(topleft=pos)
+
+			
 		
 	def update_hitbox(self):
 		self.hitbox.topleft = (self.rect.x + 5 , self.rect.y + 17)
+
+	def update_rect(self):
+		return self.image.get_rect(topleft=(200, 100))
 	
 	def collision(self, axis):
 			self.update_hitbox()  # Aggiorna hitbox prima di controllare
