@@ -20,6 +20,7 @@ class Boss(pygame.sprite.Sprite):
 		self.state = "walk"
 		self.moving = False
 		self.just_hit = False
+		self.shield_status = False
 		self.last_time_hit = 0
 		self.walking_sprite_map = {
 			"right" : self.walk_right,
@@ -32,6 +33,13 @@ class Boss(pygame.sprite.Sprite):
 			"left" : self.hit_right,
 			"back" : self.hit_back,
 			"front" : self.hit_front
+		}
+
+		self.hurt_sprite_map = {
+			"right" : self.hurt_right,
+			"left" : self.hurt_right,
+			"back" : self.hurt_back,
+			"front" : self.hurt_front
 		}
 		self.last_position_x = self.rect.x
 		self.last_position_y = self.rect.y
@@ -55,13 +63,20 @@ class Boss(pygame.sprite.Sprite):
 
 			if self.current_frame >= len(map[self.direction]):
 				self.current_frame = 0
-				if self.state == "hit":
+				if self.state == "hit" or "hurt":
 					self.state = "walk"
+				
 
 			# Seleziona sprite e applica flip se necessario
 			self.image = map[self.direction][int(self.current_frame)]
 			if self.direction == "left":
 				self.image = pygame.transform.flip(self.image, True, False)
+
+	def check_player_shield(self,shield_status):
+		if shield_status:
+			self.shield = True
+		else:
+			self.shield = False
 
 	def detect_direction(self):
 		#idea quella di prendere ogni volta l'ultima posizione e confrontare x e y, in base a se sono o maggiori o minori vuol dire che il boss sale, scende o dx o sx e da li capisco la posizione
@@ -83,11 +98,10 @@ class Boss(pygame.sprite.Sprite):
 		#gestire con il colliderect e dopo un tot far partire il colpo
 		current_time = pygame.time.get_ticks()
 		if self.rect.colliderect(self.player.rect):
-			if current_time - self.last_time_hit >= 1000:
+			if current_time - self.last_time_hit >= 500:
 				self.state = "hit"
-				if not self.player.hit:
+				if not self.player.hit and not self.shield:
 					self.player.life -=1
-				print("boss colpito player")
 
 				self.last_time_hit = current_time
 			
@@ -100,6 +114,9 @@ class Boss(pygame.sprite.Sprite):
 		self.hit_right = self.load_and_scale_images('../zelda-like/assets/boss/hit/right/walk_right_{i}.png',12,(60, 60)) 
 		self.hit_front = self.load_and_scale_images('../zelda-like/assets/boss/hit/front/walk_front_{i}.png',12,(60, 60)) 
 		self.hit_back = self.load_and_scale_images('../zelda-like/assets/boss/hit/back/walk_back_{i}.png',12,(60, 60)) 
+		self.hurt_back = self.load_and_scale_images('../zelda-like/assets/boss/hurt/back/hurt_back_{i}.png',4,(60, 60)) 
+		self.hurt_front = self.load_and_scale_images('../zelda-like/assets/boss/hurt/front/hurt_front_{i}.png',4,(60, 60)) 
+		self.hurt_right = self.load_and_scale_images('../zelda-like/assets/boss/hurt/right/hurt_right_{i}.png',4,(60, 60)) 
 		self.fireball_sprite = pygame.transform.scale(pygame.image.load(f'../zelda-like/assets/boss/fireball/fireball.png').convert_alpha(),(60,60))
 
 	def load_and_scale_images(self, path_pattern, count, size):
@@ -164,7 +181,7 @@ class Boss(pygame.sprite.Sprite):
 
 		self.hit_player()
 
-		if self.life <= 0:
+		if self.life <= 1:
 			self.kill()
 		
 		if not self.player.hit:
@@ -174,6 +191,7 @@ class Boss(pygame.sprite.Sprite):
 			self.animation(self.hit_sprite_map)
 		elif self.state == "walk":
 			self.animation(self.walking_sprite_map)
+
 
 		self.throw_fireball()
 

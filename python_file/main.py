@@ -1,5 +1,5 @@
 from settings import *
-from level import *
+from Level import *
 
 pygame.init()
 pygame.joystick.init()

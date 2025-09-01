@@ -67,13 +67,11 @@ class Inventory(pygame.sprite.Sprite):
 			if  1 <=self.selected_index <= 16:
 				self.selected_index -= 1
 
-		# print(self.selected_index, len(self.inventory_grid) )
 
 
 
 
 	def populate_from_bag(self, bag):
-		# self.clear()
 		for item in bag:
 			if item.type == "apple":
 				item.icon = self.apple
@@ -81,8 +79,7 @@ class Inventory(pygame.sprite.Sprite):
 				item.icon = self.shield
 			elif item.type == "speed":
 				item.icon = self.speed
-			# elif item.type == "key":
-			# 	item.icon = self.key.icon
+
 
 
 		self.inventory_grid = bag
@@ -94,6 +91,12 @@ class Inventory(pygame.sprite.Sprite):
 				self.inventory_grid.pop(self.selected_index)
 				return "key"
 			self.inventory_grid.pop(self.selected_index)
+
+	def remove_key_in_dungeon(self):
+		for item in self.inventory_grid[:]: #[:] crei array di copia per non perdere elementi dopo la rimozione e agisci invece sull'orignale
+			if item.type == "key":
+				self.inventory_grid.remove(item)
+
 			
 
 	def use_item(self):

@@ -39,23 +39,12 @@ class Player(pygame.sprite.Sprite):
 		self.speed_boost = False
 		self.last_shield = 0
 		self.last_speed_boost = 0
-		self.key_counter = 0
+		self.key_counter = 3
 
 	def apply_speed_bost(self):
 		self.speed = 6
 		
 	
-
-	def import_sprites(self):
-		self.walk_right = [pygame.image.load(f'../zelda-like/assets/player/walking/right/walk_right_{i}.png').convert_alpha() for i in range(0, 5)]
-		self.walk_back = [pygame.image.load(f'../zelda-like/assets/player/walking/back/walk_back_{i}.png').convert_alpha() for i in range(1, 6)]
-		self.walk_front = [pygame.image.load(f'../zelda-like/assets/player/walking/front/walk_front_{i}.png').convert_alpha() for i in range(1, 6)]
-		self.hit_sword_right = [pygame.image.load(f'../zelda-like/assets/player/hit/right/hit_right_{i}.png').convert_alpha() for i in range(1, 6)]
-		self.hit_sword_front = [pygame.image.load(f'../zelda-like/assets/player/hit/front/hit_front_{i}.png').convert_alpha() for i in range(1, 6)]
-		self.hit_sword_back = [pygame.image.load(f'../zelda-like/assets/player/hit/up/hit_up_{i}.png').convert_alpha() for i in range(1, 6)]
-		self.hurt_back = [pygame.image.load(f'../zelda-like/assets/player/hurt/back/hurt_back_{i}.png').convert_alpha() for i in range(1, 5)]
-		self.hurt_right = [pygame.image.load(f'../zelda-like/assets/player/hurt/right/hurt_right_{i}.png').convert_alpha() for i in range(1, 5)]
-		self.hurt_front = [pygame.image.load(f'../zelda-like/assets/player/hurt/front/hurt_front_{i}.png').convert_alpha() for i in range(1, 5)]
 
 
 
@@ -134,27 +123,6 @@ class Player(pygame.sprite.Sprite):
 		# if not self.hit:
 		# 	self.animation_walk(moving,self.walk_right,self.walk_back,self.walk_front)
 
-
-
-	def animation_walk(self,moving, right, up, down):
-		sprite_map = {
-			"right": right,
-			"left": right,  # Flip dopo
-			"up": up,
-			"down": down
-			}
-		
-		if not self.damage_taken:
-			self.current_frame = self.current_frame + self.animation_speed if moving else 0
-			if self.current_frame >= len(sprite_map[self.direction]):
-				self.current_frame = 0
-
-			# Seleziona sprite e applica flip se necessario
-			self.image = sprite_map[self.direction][int(self.current_frame)]
-			if self.direction == "left":
-				self.image = pygame.transform.flip(self.image, True, False)
-
-
 	def animation(self, animation_on, right, up, down):
 		sprite_map = {
 			"right": right,
@@ -182,12 +150,25 @@ class Player(pygame.sprite.Sprite):
 
 			
 		
-	def update_hitbox(self):
-		self.hitbox.topleft = (self.rect.x + 5 , self.rect.y + 17)
 
-	def update_rect(self):
-		return self.image.get_rect(topleft=(200, 100))
-	
+	def animation_walk(self,moving, right, up, down):
+		sprite_map = {
+			"right": right,
+			"left": right,  # Flip dopo
+			"up": up,
+			"down": down
+			}
+		
+		if not self.damage_taken:
+			self.current_frame = self.current_frame + self.animation_speed if moving else 0
+			if self.current_frame >= len(sprite_map[self.direction]):
+				self.current_frame = 0
+
+			# Seleziona sprite e applica flip se necessario
+			self.image = sprite_map[self.direction][int(self.current_frame)]
+			if self.direction == "left":
+				self.image = pygame.transform.flip(self.image, True, False)
+				
 	def collision(self, axis):
 			self.update_hitbox()  # Aggiorna hitbox prima di controllare
 			for sprite in self.collision_sprite:
@@ -201,7 +182,8 @@ class Player(pygame.sprite.Sprite):
 						if self.direction == "down" and self.hitbox.bottom >= sprite.rect.top:
 							self.rect.y = sprite.rect.top - 17  # Offset hitbox
 						elif self.direction == "up" and self.hitbox.top <= sprite.rect.bottom:
-							self.rect.y = sprite.rect.bottom - 17  # Offset hitbox
+							print(self.hitbox.top,sprite.rect.bottom)
+							self.rect.y = sprite.rect.bottom + 17  # Offset hitbox
 			self.update_hitbox()  # Aggiorna hitbox dopo la correzione
 
 	def death(self):
@@ -221,8 +203,22 @@ class Player(pygame.sprite.Sprite):
 					self.prev_life = self.life
 					self.damage_taken = False
 
+	def import_sprites(self):
+		self.walk_right = [pygame.image.load(f'../zelda-like/assets/player/walking/right/walk_right_{i}.png').convert_alpha() for i in range(0, 5)]
+		self.walk_back = [pygame.image.load(f'../zelda-like/assets/player/walking/back/walk_back_{i}.png').convert_alpha() for i in range(1, 6)]
+		self.walk_front = [pygame.image.load(f'../zelda-like/assets/player/walking/front/walk_front_{i}.png').convert_alpha() for i in range(1, 6)]
+		self.hit_sword_right = [pygame.image.load(f'../zelda-like/assets/player/hit/right/hit_right_{i}.png').convert_alpha() for i in range(1, 6)]
+		self.hit_sword_front = [pygame.image.load(f'../zelda-like/assets/player/hit/front/hit_front_{i}.png').convert_alpha() for i in range(1, 6)]
+		self.hit_sword_back = [pygame.image.load(f'../zelda-like/assets/player/hit/up/hit_up_{i}.png').convert_alpha() for i in range(1, 6)]
+		self.hurt_back = [pygame.image.load(f'../zelda-like/assets/player/hurt/back/hurt_back_{i}.png').convert_alpha() for i in range(1, 5)]
+		self.hurt_right = [pygame.image.load(f'../zelda-like/assets/player/hurt/right/hurt_right_{i}.png').convert_alpha() for i in range(1, 5)]
+		self.hurt_front = [pygame.image.load(f'../zelda-like/assets/player/hurt/front/hurt_front_{i}.png').convert_alpha() for i in range(1, 5)]
 
 
+
+
+	def update_hitbox(self):
+		self.hitbox.topleft = (self.rect.x + 5 , self.rect.y + 17)
 
 
 	def update(self):

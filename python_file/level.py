@@ -1,9 +1,9 @@
 from settings import *
-from player import *
-from monster import *
-from map_setup import *
-from hud import *
-from seller import *
+from Player import *
+from Monster import *
+from Map_setup import *
+from Hud import *
+from Seller import *
 from Item import *
 from Inventory import Inventory
 from Key import *
@@ -61,6 +61,7 @@ class Level():
 		self.inventory_key = False 
 		self.g_pressed = False
 		self.key_drop_status = False
+		self.dungeon_status = False
 
 
 
@@ -78,8 +79,9 @@ class Level():
 		self.inventory = Inventory(self.player,self.game_surface)
 		self.game_state = "gameplay"
 		self.setup()
+		self.import_sounds()
 		# self.setup_market(self.market_map_path) #accedi direttamente al market
-		self.setup_dungeon(self.dungeon_map_path) #accedi direttamente al market
+		# self.setup_dungeon(self.dungeon_map_path) #accedi direttamente al market
 		self.all_sprites.add(self.player) #aggiungi il player alle sprite per ultimo cosi non c'è niente sopra
 
 		
@@ -98,6 +100,49 @@ class Level():
 
 		else:
 			print("item non utilizzabile") #fai apparire messaggio di errore
+
+	def change_map(self):
+		if not self.market_status:	
+			
+			if self.player.rect.x > WIDTH:
+				self.update_position(0, 1)
+				self.player.rect.x = 10
+
+			if self.player.rect.x < 0:
+				self.update_position(0, -1)
+				self.player.rect.x = WIDTH - 10
+
+			if self.player.rect.y > HEIGHT:
+				self.update_position(1, 0)
+				self.player.rect.y = 10
+
+			if self.player.hitbox.y < 0:
+				self.update_position(-1, 0)
+				self.player.rect.y = HEIGHT -10
+		
+		
+		else:
+			if self.player.rect.x > WIDTH:
+				self.update_position(0,0)	
+				self.market_status = False	
+				self.player.remove(self.all_sprites) 
+				self.player.add(self.all_sprites) 
+				self.player.rect.x = 55
+				self.player.rect.y = 155
+
+
+		for sprites in self.market_sprites:
+			if sprites.rect.colliderect(self.player.hitbox):
+				self.player.remove(self.all_sprites) 
+				self.setup_market(self.market_map_path)
+				self.player.add(self.all_sprites) 
+
+		for sprites in self.portal_sprites:
+			if sprites.rect.colliderect(self.player.hitbox) and self.player.key_counter >= 3:
+				self.player.key_counter -= 3
+				self.player.remove(self.all_sprites) 
+				print("entro nel void")
+				self.setup_dungeon(self.dungeon_map_path)
 
 	def clear_sprites(self):
 		#svuota i gruppi di sprites
@@ -181,7 +226,7 @@ class Level():
 			# Attacco con il tasto F
 			if keys[pygame.K_f] and not self.player.hit:
 				current_time = pygame.time.get_ticks()
-				if current_time - self.player.last_hit > 400:
+				if current_time - self.player.last_hit > 650: #delay tra ogni colpo
 					self.player.hit = True
 					self.player.last_hit = current_time
 					# self.collide_player_to_boss()
@@ -215,6 +260,43 @@ class Level():
 		if not self.player.hit:
 			self.player.animation_walk(moving,self.player.walk_right,self.player.walk_back,self.player.walk_front)
 
+	def import_sounds(self):
+		"sound"
+
+
+
+	def manager_HUD(self):
+		self.hud.draw(self.game_surface)
+		if self.dungeon_status:
+			self.hud.draw_boss_life(self.game_surface)
+
+		if self.game_state == "inventory":
+			self.inventory.update()
+
+		if self.player.shield:
+			self.hud.draw_item_text("shield")
+
+		if self.player.speed_boost:
+			self.hud.draw_item_text("speed")
+
+	def manager_drop_item(self):
+		self.render_drop_key()
+		self.update_shield()
+		self.update_speed()
+		for monster in self.monster_sprites:
+			monster.check_player_shield(self.player.shield)
+		self.boss.check_player_shield(self.player.shield)
+	
+
+	def market(self):
+		if self.market_status:
+			self.seller.display_market(self.game_surface)
+			if self.seller.talking:
+				if self.player.coin_count < 10:
+					self.seller.draw_no_coin_text()
+
+				else:
+					self.seller.draw_item_speed_potion()
 
 
 	def setup(self):
@@ -245,9 +327,18 @@ class Level():
 			for x, y, surf in self.tmx_map.get_layer_by_name("portal").tiles():
 				Structures((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.portal_sprites))
 
+	def play_soundtrack(self):
+		if not self.dungeon_status:
+			pygame.mixer.music.load("assets/sound/soundtrack/theme_song.mp3")
+			pygame.mixer.music.play(-1)
+
+
 	def setup_dungeon(self,dungeon_path):
 		self.clear_sprites()
 		tmx_map = pytmx.load_pygame(dungeon_path)
+		self.inventory.remove_key_in_dungeon()
+		self.dungeon_status = True
+
 
 		for x, y, surf in tmx_map.get_layer_by_name("ground").tiles():
 			Structures((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites))
@@ -255,14 +346,10 @@ class Level():
 		for x, y, surf in tmx_map.get_layer_by_name("cant_pass").tiles():
 			Structures((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.collision_sprites))
 
-		# for x, y, surf in tmx_map.get_layer_by_name("cant_pass").tiles():
-		# 	Boss((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites,self.monster_sprites))
-
-
 		self.player.rect.x = 30
-		self.player.rect.y = 400
+		self.player.rect.y = 300
 
-
+		self.player.add(self.all_sprites) 
 		self.all_sprites.add(self.boss) #aggiungi boss alle sprite per ultimo cosi non ci sono problemi con sovrapposizioni
 
 
@@ -295,66 +382,6 @@ class Level():
 					break
 			if not already_collected: #render item non ancora raccolti
 				Item((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites, self.pickup_items_grups), type)	
-
-
-	def market(self):
-		if self.market_status:
-			self.seller.display_market(self.game_surface)
-			if self.seller.talking:
-				if self.player.coin_count < 10:
-					self.seller.draw_no_coin_text()
-
-				else:
-					self.seller.draw_item_speed_potion()
-
-	def change_map(self):
-
-
-		if not self.market_status:	
-			
-			if self.player.rect.x > WIDTH:
-				self.update_position(0, 1)
-				self.player.rect.x = 10
-
-			if self.player.rect.x < 0:
-				self.update_position(0, -1)
-				self.player.rect.x = WIDTH - 10
-
-			if self.player.rect.y > HEIGHT:
-				self.update_position(1, 0)
-				self.player.rect.y = 10
-
-			if self.player.hitbox.y < 0:
-				self.update_position(-1, 0)
-				self.player.rect.y = HEIGHT -10
-		
-		
-		else:
-			if self.player.rect.x > WIDTH:
-				self.update_position(0,0)	
-				self.market_status = False	
-				self.player.remove(self.all_sprites) 
-				self.player.add(self.all_sprites) 
-				self.player.rect.x = 55
-				self.player.rect.y = 155
-
-
-		for sprites in self.market_sprites:
-			if sprites.rect.colliderect(self.player.hitbox):
-				self.player.remove(self.all_sprites) 
-				self.setup_market(self.market_map_path)
-				self.player.add(self.all_sprites) 
-
-		for sprites in self.portal_sprites:
-			if sprites.rect.colliderect(self.player.hitbox) and self.player.key_counter >= 3:
-				self.player.key_counter -= 3
-				self.player.remove(self.all_sprites) 
-				print("entro nel void")
-				print(self.player.key_counter)
-				self.player.add(self.all_sprites) 
-
-
-
 
 	def update_position(self, row_change, col_change):
 		#Aggiorna la posizione della mappa e ricarica gli elementi 
@@ -405,9 +432,12 @@ class Level():
 			if self.player.hit and not self.boss.just_hit:
 				self.boss.life -= 1
 				self.boss.just_hit = True
-				print("player colpito boss")
-				print(self.boss.life)
 
+
+	def collide_player_to_fireball(self):
+		if self.player.rect.colliderect(self.boss.fireball_rect) and not self.player.shield:
+			self.player.life -= 1
+			self.boss.fireball_bol = False
 
 	def render_drop_key(self):
 		if self.key_drop_status:
@@ -418,46 +448,41 @@ class Level():
 
 
 	def run(self):
-		self.game_surface.fill((0, 0, 0))
 		self.all_sprites.update()
 		self.handle_input()
 		self.change_map()
+
 		self.all_sprites.draw(self.game_surface)
-		self.hud.draw(self.game_surface)
-		self.collide_player_to_monster()
-		self.collide_player_to_boss()
 		
-		if self.boss.fireball_bol:
-			self.game_surface.blit(self.boss.fireball_sprite,self.boss.fireball_rect)
+		#HUD MANAGER
+		self.manager_HUD()
 
-		self.update_shield()
-		self.update_speed()
-		for monster in self.monster_sprites:
-			monster.check_player_shield(self.player.shield)
+		#ITEM DROP MANAGER
+		self.manager_drop_item()
 
+		#MUSIC MANAGER
+		self.play_soundtrack()
+
+		#CHECK COLLISION PLAYER WITH ENEMY		
+		self.collide_player_to_boss()
+		self.collide_player_to_monster()
+
+
+		if self.dungeon_status:
+			if self.boss.fireball_bol:
+				self.game_surface.blit(self.boss.fireball_sprite,self.boss.fireball_rect)		
+				self.collide_player_to_fireball()
+
+		
 		self.market()
 
-
-
-		if self.game_state == "inventory":
-			self.inventory.update()
-
-		if self.player.shield:
-			self.hud.draw_item_text("shield")
-
-		if self.player.speed_boost:
-			self.hud.draw_item_text("speed")
-
-		self.render_drop_key()
-
-		# print(self.player.key_counter)
+		
 
 
 		# pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.hitbox, 2)
 		# for monster in self.monster_sprites:
 		# 	pygame.draw.rect(self.game_surface, (255, 0, 0), monster.activate_rect, 2)
-		pygame.draw.rect(self.game_surface, (255, 0, 0), self.boss.rect, 2)
-		pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.rect, 2)
+	
 		
 
 
