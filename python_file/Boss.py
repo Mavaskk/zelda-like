@@ -118,7 +118,8 @@ class Boss(pygame.sprite.Sprite):
 		self.hurt_front = self.load_and_scale_images('../zelda-like/assets/boss/hurt/front/hurt_front_{i}.png',4,(60, 60)) 
 		self.hurt_right = self.load_and_scale_images('../zelda-like/assets/boss/hurt/right/hurt_right_{i}.png',4,(60, 60)) 
 		self.fireball_sprite = pygame.transform.scale(pygame.image.load(f'../zelda-like/assets/boss/fireball/fireball.png').convert_alpha(),(60,60))
-
+		self.fireball_sound = pygame.mixer.Sound("assets/sound/enemy_sound/fireball.mp3")
+		self.fireball_sound.set_volume(0.1)  
 	def load_and_scale_images(self, path_pattern, count, size):
 		#count numero immagini da caricare
 		#size dimensione immagine
@@ -159,6 +160,7 @@ class Boss(pygame.sprite.Sprite):
 			self.fireball_direction = self.direction
 
 			self.fireball_bol = True
+			self.fireball_sound.play()
 			print("lancio sfera")
 			self.fireball_last_time = current_time
 	

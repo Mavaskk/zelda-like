@@ -39,16 +39,11 @@ class Player(pygame.sprite.Sprite):
 		self.speed_boost = False
 		self.last_shield = 0
 		self.last_speed_boost = 0
-		self.key_counter = 3
+		self.key_counter = 0 
 
 	def apply_speed_bost(self):
 		self.speed = 6
 		
-	
-
-
-
-
 	# def input(self):
 	# 	if joystick:
 	# 		# Movimento in 4 direzioni
@@ -180,10 +175,9 @@ class Player(pygame.sprite.Sprite):
 							self.rect.right = sprite.rect.left + 5  # Offset hitbox
 					elif axis == "vertical":
 						if self.direction == "down" and self.hitbox.bottom >= sprite.rect.top:
-							self.rect.y = sprite.rect.top - 17  # Offset hitbox
+							self.rect.bottom = sprite.rect.top - 5  # Offset hitbox
 						elif self.direction == "up" and self.hitbox.top <= sprite.rect.bottom:
-							print(self.hitbox.top,sprite.rect.bottom)
-							self.rect.y = sprite.rect.bottom + 17  # Offset hitbox
+							self.rect.top= sprite.rect.bottom + 5  # Offset hitbox
 			self.update_hitbox()  # Aggiorna hitbox dopo la correzione
 
 	def death(self):
@@ -199,6 +193,8 @@ class Player(pygame.sprite.Sprite):
 				self.damage_taken = True
 				self.animation_on = True 
 				self.animation(self.animation_on,self.hurt_right,self.hurt_back,self.hurt_front)
+				self.player_hurt.play()
+
 				if not self.animation_on:
 					self.prev_life = self.life
 					self.damage_taken = False
@@ -213,6 +209,9 @@ class Player(pygame.sprite.Sprite):
 		self.hurt_back = [pygame.image.load(f'../zelda-like/assets/player/hurt/back/hurt_back_{i}.png').convert_alpha() for i in range(1, 5)]
 		self.hurt_right = [pygame.image.load(f'../zelda-like/assets/player/hurt/right/hurt_right_{i}.png').convert_alpha() for i in range(1, 5)]
 		self.hurt_front = [pygame.image.load(f'../zelda-like/assets/player/hurt/front/hurt_front_{i}.png').convert_alpha() for i in range(1, 5)]
+
+		self.player_hurt = pygame.mixer.Sound("assets/sound/player_sound/hurt.mp3")
+		self.player_hurt.set_volume(0.2)  
 
 
 

@@ -13,7 +13,8 @@ WINDOW_HEIGHT = HEIGHT * 2  # 896
 
 
 pygame.joystick.init()
-pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=512)
+pygame.mixer.init()
+
 
 joystick = None
 if pygame.joystick.get_count() > 0:

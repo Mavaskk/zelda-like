@@ -14,6 +14,7 @@ from Boss import *
 class Level():
 	def __init__(self, game_surface):
 		super().__init__()
+		pygame.mixer.init()
 
 
 		self.game_surface = game_surface
@@ -80,6 +81,9 @@ class Level():
 		self.game_state = "gameplay"
 		self.setup()
 		self.import_sounds()
+		
+		# self.play_soundtrack()
+
 		# self.setup_market(self.market_map_path) #accedi direttamente al market
 		# self.setup_dungeon(self.dungeon_map_path) #accedi direttamente al market
 		self.all_sprites.add(self.player) #aggiungi il player alle sprite per ultimo cosi non c'è niente sopra
@@ -153,7 +157,7 @@ class Level():
 		self.market_sprites.empty()		
 
 
-	def handle_input(self):
+	def handle_input_keyboard(self):
 
 		keys = pygame.key.get_pressed()
 		moving = False
@@ -191,7 +195,7 @@ class Level():
 				self.player.direction = "up"
 				self.player.collision("vertical")
 				moving = True
-			elif keys[pygame.K_e]: #raccogli oggetto
+			elif keys[pygame.K_e]: #raccogli oggetto o parla con mercante
 				if self.market_status:
 					if self.seller.talking:
 						if self.player.coin_count >= 10:
@@ -207,6 +211,7 @@ class Level():
 					for item in self.pickup_items_grups:
 						if self.player.rect.colliderect(item):
 							if len(self.player.bag) <= 15:
+								self.pickup_item_sound.play()
 								self.player.bag.append(item)
 								self.picked_items.append(item)
 								item.kill()						
@@ -227,6 +232,7 @@ class Level():
 			if keys[pygame.K_f] and not self.player.hit:
 				current_time = pygame.time.get_ticks()
 				if current_time - self.player.last_hit > 650: #delay tra ogni colpo
+					self.sword_swing.play()
 					self.player.hit = True
 					self.player.last_hit = current_time
 					# self.collide_player_to_boss()
@@ -260,8 +266,132 @@ class Level():
 		if not self.player.hit:
 			self.player.animation_walk(moving,self.player.walk_right,self.player.walk_back,self.player.walk_front)
 
+	def handle_input_joystick(self):
+
+		moving = False
+
+		if joystick.get_button(3): #apri inventario con tasto y
+			if not self.g_pressed:
+				if self.game_state == "gameplay":
+					self.game_state = "inventory"
+					self.inventory.populate_from_bag(self.player.bag)
+				elif self.game_state == "inventory":
+					self.game_state = "gameplay"
+				print("Stato gioco:", self.game_state)
+				self.g_pressed = True
+		else:
+			self.g_pressed = False
+
+		if self.game_state == "gameplay" :
+			if joystick:
+			# Movimento in 4 direzioni
+				axis_x = joystick.get_axis(0)
+				axis_y = joystick.get_axis(1)
+				moving = False
+				if axis_x > 0.1:  # Destra
+					self.player.rect.x += self.player.speed
+					self.player.direction = "right" 
+					self.player.collision("horizontal")
+					moving = True
+				elif axis_x < -0.1:  # Sinistra
+					self.player.rect.x -= self.player.speed
+					self.player.direction = "left" 
+					self.player.collision("horizontal")
+					moving = True
+				elif axis_y > 0.1:  # Giù
+					self.player.rect.y += self.player.speed
+					self.player.direction = "down" 
+					self.player.collision("vertical")
+					moving = True
+				elif axis_y < -0.1:  # Su
+					self.player.rect.y -= self.player.speed	
+					self.player.direction = "up" 
+					self.player.collision("vertical")
+					moving = True
+				elif joystick.get_button(2): #raccogli oggetto tasto b
+					if self.market_status:
+						if self.seller.talking:
+							if self.player.coin_count >= 10:
+								current_time_buy = pygame.time.get_ticks() 
+								cooldown_buy = 400
+								if len(self.player.bag) <= 15:
+									if current_time_buy - self.seller.last_buy > cooldown_buy:
+										potion = self.seller.trade()
+										self.player.bag.append(potion)
+										self.player.coin_count -= 10  
+										self.seller.last_buy = current_time_buy
+					else:
+						for item in self.pickup_items_grups:
+							if self.player.rect.colliderect(item):
+								if len(self.player.bag) <= 15:
+									self.pickup_item_sound.play()
+									self.player.bag.append(item)
+									self.picked_items.append(item)
+									item.kill()						
+								else:
+									print("inventario pieno")
+				elif joystick.get_button(0): #parla con il mercante tasto x
+					current_time_talk = pygame.time.get_ticks()
+					cooldown_talk = 200
+					if self.market_status:
+						if self.player.rect.colliderect(self.seller.hitbox):
+							if current_time_talk - self.seller.last_talk > cooldown_talk:
+								self.seller.talking = not self.seller.talking
+								
+								self.seller.last_talk = current_time_talk
+
+						
+			# Attacco con il tasto a
+			if joystick.get_button(1) and not self.player.hit:
+				current_time = pygame.time.get_ticks()
+				if current_time - self.player.last_hit > 650: #delay tra ogni colpo
+					self.sword_swing.play()
+					self.player.hit = True
+					self.player.last_hit = current_time
+
+
+		if self.game_state == "inventory":
+			current_time = pygame.time.get_ticks()
+			cooldown = 200
+			if current_time - self.inventory.move_time > cooldown:			
+				if joystick.get_button(5):  # Destra
+					self.inventory.handle_input("right")
+					self.inventory.move_time = current_time
+				if joystick.get_button(4):  # sinistra
+					self.inventory.handle_input("left")
+					self.inventory.move_time = current_time
+				if joystick.get_button(0):  # togli oggetto 
+					remove_cooldown = 200
+					current_time_remove = pygame.time.get_ticks()
+					if current_time_remove - self.inventory.last_remove_time > remove_cooldown:
+						if self.inventory.remove_item() == "key":
+							self.player.key_counter -= 1
+						self.inventory.last_remove_time = current_time_remove
+				if joystick.get_button(1):  # usa oggetto tastk a
+					use_cooldown = 200
+					current_time_use = pygame.time.get_ticks()
+					if current_time_use - self.inventory.last_use_time > use_cooldown:
+						item = self.inventory.use_item()
+						self.apply_item_to_player(item)
+						self.inventory.last_use_time = current_time_use
+				
+		if not self.player.hit:
+			self.player.animation_walk(moving,self.player.walk_right,self.player.walk_back,self.player.walk_front)
+
 	def import_sounds(self):
-		"sound"
+		self.sword_swing = pygame.mixer.Sound("assets/sound/player_sound/sword_sound.mp3")
+		self.sword_swing.set_volume(0.1)  # volume da 0.0 a 1.0
+		self.death_slime = pygame.mixer.Sound("assets/sound/enemy_sound/death_slime.mp3")
+		self.death_slime.set_volume(0.1)  
+		self.key_drop = pygame.mixer.Sound("assets/sound/enemy_sound/key_drop.mp3")
+		self.key_drop.set_volume(0.1)  
+		# self.step_player = pygame.mixer.Sound("assets/sound/player_sound/step.mp3")
+		# self.step_player.set_volume(0.1)  
+		self.pickup_item_sound = pygame.mixer.Sound("assets/sound/player_sound/pickup.mp3")
+		self.pickup_item_sound.set_volume(0.1)  
+
+
+
 
 
 
@@ -300,6 +430,7 @@ class Level():
 
 
 	def setup(self):
+
 		self.clear_sprites()
 
 		for x, y, surf in self.tmx_map.get_layer_by_name("ground").tiles():
@@ -329,12 +460,16 @@ class Level():
 
 	def play_soundtrack(self):
 		if not self.dungeon_status:
-			pygame.mixer.music.load("assets/sound/soundtrack/theme_song.mp3")
+			pygame.mixer.music.load("assets/sound/soundtrack/theme_song.ogg")
+			pygame.mixer.music.set_volume(0.1)
 			pygame.mixer.music.play(-1)
 
 
 	def setup_dungeon(self,dungeon_path):
 		self.clear_sprites()
+		pygame.mixer.music.load("assets/sound/soundtrack/dungeon_song.mp3")
+		pygame.mixer.music.set_volume(0.1)
+		pygame.mixer.music.play(-1)
 		tmx_map = pytmx.load_pygame(dungeon_path)
 		self.inventory.remove_key_in_dungeon()
 		self.dungeon_status = True
@@ -419,6 +554,7 @@ class Level():
 				if self.player.hit: 
 					self.last_monster_death_rect = monster.rect
 					monster.life -= 1  # Riduci la vita del mostro colpito
+					self.death_slime.play()
 					self.player.coin_count += 0.5
 					if monster.drop_key():
 						self.key_drop_status = True
@@ -431,6 +567,7 @@ class Level():
 		if self.player.rect.colliderect(self.boss.rect):
 			if self.player.hit and not self.boss.just_hit:
 				self.boss.life -= 1
+				self.death_slime.play()
 				self.boss.just_hit = True
 
 
@@ -441,6 +578,7 @@ class Level():
 
 	def render_drop_key(self):
 		if self.key_drop_status:
+			self.key_drop.play()
 			self.game_surface.blit(self.key.image,self.last_monster_death_rect)			
 			current_time = pygame.time.get_ticks()
 			if current_time - self.key_spawn_time > 750:
@@ -449,7 +587,7 @@ class Level():
 
 	def run(self):
 		self.all_sprites.update()
-		self.handle_input()
+		self.handle_input_joystick()
 		self.change_map()
 
 		self.all_sprites.draw(self.game_surface)
@@ -460,8 +598,6 @@ class Level():
 		#ITEM DROP MANAGER
 		self.manager_drop_item()
 
-		#MUSIC MANAGER
-		self.play_soundtrack()
 
 		#CHECK COLLISION PLAYER WITH ENEMY		
 		self.collide_player_to_boss()
@@ -479,7 +615,7 @@ class Level():
 		
 
 
-		# pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.hitbox, 2)
+		pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.hitbox, 2)
 		# for monster in self.monster_sprites:
 		# 	pygame.draw.rect(self.game_surface, (255, 0, 0), monster.activate_rect, 2)
 	
