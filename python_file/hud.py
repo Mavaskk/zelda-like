@@ -22,6 +22,12 @@ class Hud(pygame.sprite.Sprite):
 		self.life_6 = pygame.image.load('../zelda-like/assets/hud/boss_life/life_6.png').convert_alpha()
 		self.life_7 = pygame.image.load('../zelda-like/assets/hud/boss_life/life_7.png').convert_alpha()
 		self.life_8 = pygame.image.load('../zelda-like/assets/hud/boss_life/life_8.png').convert_alpha()
+		self.game_complete_ui = self.load_and_scale("../zelda-like/assets/hud/ui_button/state_game/complete_ui.png",(300,40))
+		self.inventory_complete_ui = self.load_and_scale("../zelda-like/assets/hud/ui_button/state_inventory/inventory_ui.png",(300,40))
+		self.x_talk = self.load_and_scale("../zelda-like/assets/hud/ui_button/state_game/x_talk.png",(70,25))
+		self.b_buy = self.load_and_scale("../zelda-like/assets/hud/ui_button/state_game/b_buy.png",(70,25))
+		self.story_sprite = pygame.image.load('../zelda-like/assets/hud/story.png').convert_alpha()
+
 		self.speed_potion = pygame.transform.scale(self.speed_potion, (30, 30))
 		self.heart_sprite = pygame.transform.scale(self.heart_sprite,(32,32))
 		self.shield_sprite = pygame.transform.scale(self.shield_sprite,(32,32))
@@ -30,6 +36,8 @@ class Hud(pygame.sprite.Sprite):
 		self.rects2 = pygame.Rect(340, 20, 16, 16)  # Seconda vita
 		self.rects3 = pygame.Rect(380, 20, 16, 16)  # Terza vita	
 		self.boss_rect= pygame.Rect(80, 20, 16, 16)  # Terza vita	
+		
+
 
 
 	def draw(self,screen):
@@ -62,8 +70,23 @@ class Hud(pygame.sprite.Sprite):
 				self.screen.blit(boss_life_sprites[i], self.boss_rect)
 
 
+	def draw_inventory_ui(self):
+		rect = pygame.Rect(190, 410, 64, 64)
 
+		self.screen.blit(self.inventory_complete_ui,rect)
 
+	def draw_seller_ui(self):
+		rect = pygame.Rect(300, 415, 64, 64)
+		self.screen.blit(self.b_buy,rect)
+	
+	
+	def draw_game_ui(self):
+		rect = pygame.Rect(170, 410, 64, 64)
+		self.screen.blit(self.game_complete_ui,rect)
+
+	def draw_market_ui(self):
+		rect = pygame.Rect(300, 415, 64, 64)
+		self.screen.blit(self.x_talk,rect)
 
 	
 
@@ -76,3 +99,10 @@ class Hud(pygame.sprite.Sprite):
 
 
 	
+	def load_and_scale(self,path, size):
+		image = pygame.image.load(path).convert_alpha()
+		return pygame.transform.scale(image, size)
+	
+
+	def show_story(self):
+		"da scegliere"

@@ -63,6 +63,7 @@ class Level():
 		self.g_pressed = False
 		self.key_drop_status = False
 		self.dungeon_status = False
+		
 
 
 
@@ -82,7 +83,7 @@ class Level():
 		self.setup()
 		self.import_sounds()
 		
-		# self.play_soundtrack()
+		self.play_soundtrack()
 
 		# self.setup_market(self.market_map_path) #accedi direttamente al market
 		# self.setup_dungeon(self.dungeon_map_path) #accedi direttamente al market
@@ -402,6 +403,19 @@ class Level():
 
 		if self.game_state == "inventory":
 			self.inventory.update()
+			self.hud.draw_inventory_ui()
+
+		if self.market_status:
+			if self.seller.talking:
+				self.hud.draw_seller_ui()
+
+		if self.market_status:
+			if not self.seller.talking:
+				self.hud.draw_market_ui()
+
+		if self.game_state == "gameplay":
+			if  not self.market_status:
+				self.hud.draw_game_ui()
 
 		if self.player.shield:
 			self.hud.draw_item_text("shield")
@@ -466,6 +480,8 @@ class Level():
 
 
 	def setup_dungeon(self,dungeon_path):
+		self.boss = Boss(self.player)
+
 		self.clear_sprites()
 		pygame.mixer.music.load("assets/sound/soundtrack/dungeon_song.mp3")
 		pygame.mixer.music.set_volume(0.1)
@@ -564,11 +580,12 @@ class Level():
 						self.player.bag.append(self.key)
 
 	def collide_player_to_boss(self):
-		if self.player.rect.colliderect(self.boss.rect):
-			if self.player.hit and not self.boss.just_hit:
-				self.boss.life -= 1
-				self.death_slime.play()
-				self.boss.just_hit = True
+		if self.dungeon_status:
+			if self.player.rect.colliderect(self.boss.rect):
+				if self.player.hit and not self.boss.just_hit:
+					self.boss.life -= 1
+					self.death_slime.play()
+					self.boss.just_hit = True
 
 
 	def collide_player_to_fireball(self):
@@ -588,9 +605,11 @@ class Level():
 	def run(self):
 		self.all_sprites.update()
 		self.handle_input_joystick()
+		# self.handle_input_keyboard()
 		self.change_map()
 
 		self.all_sprites.draw(self.game_surface)
+		self.market()
 		
 		#HUD MANAGER
 		self.manager_HUD()
@@ -610,12 +629,11 @@ class Level():
 				self.collide_player_to_fireball()
 
 		
-		self.market()
 
 		
 
 
-		pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.hitbox, 2)
+		# pygame.draw.rect(self.game_surface, (255, 0, 0), self.player.hitbox, 2)
 		# for monster in self.monster_sprites:
 		# 	pygame.draw.rect(self.game_surface, (255, 0, 0), monster.activate_rect, 2)
 	
