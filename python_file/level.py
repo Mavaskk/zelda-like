@@ -63,6 +63,7 @@ class Level():
 		self.g_pressed = False
 		self.key_drop_status = False
 		self.dungeon_status = False
+		self.paused = None
 		
 
 
@@ -83,7 +84,7 @@ class Level():
 		self.setup()
 		self.import_sounds()
 		
-		self.play_soundtrack()
+		# self.play_soundtrack()
 
 		# self.setup_market(self.market_map_path) #accedi direttamente al market
 		# self.setup_dungeon(self.dungeon_map_path) #accedi direttamente al market
@@ -146,18 +147,58 @@ class Level():
 			if sprites.rect.colliderect(self.player.hitbox) and self.player.key_counter >= 3:
 				self.player.key_counter -= 3
 				self.player.remove(self.all_sprites) 
-				print("entro nel void")
 				self.setup_dungeon(self.dungeon_map_path)
+
+	def check_player_status(self):
+		if self.player.life <= 0:
+			current_time = pygame.time.get_ticks()
+			if current_time > 5000:
+				return True
+
+	def check_pause_status(self,pause):
+		self.paused = pause
+		self.manager_HUD()
+
 
 	def clear_sprites(self):
 		#svuota i gruppi di sprites
 		self.collision_sprites.empty()
 		self.pickup_items_grups.empty()
+		self.portal_sprites.empty()
 		self.all_sprites.empty()
 		self.monster_sprites.empty() 
 		self.market_sprites.empty()		
 
+	def collide_player_to_monster(self):
+ 	# Se il player sta attaccando
+			collided_monsters = pygame.sprite.spritecollide(self.player, self.monster_sprites, False)
+			for monster in collided_monsters:
+				if self.player.hit: 
+					self.last_monster_death_rect = monster.rect
+					monster.life -= 1  # Riduci la vita del mostro colpito
+					self.death_slime.play()
+					self.player.coin_count += 0.5
+					if monster.drop_key():
+						self.key_drop_status = True
+						self.key_spawn_time = pygame.time.get_ticks() 
+						print("chiave ottenuta")
+						self.player.key_counter += 1
+						self.player.bag.append(self.key)
 
+	def collide_player_to_boss(self):
+		if self.dungeon_status:
+			if self.player.rect.colliderect(self.boss.rect):
+				if self.player.hit and not self.boss.just_hit:
+					self.boss.life -= 1
+					self.death_slime.play()
+					self.boss.just_hit = True
+
+
+	def collide_player_to_fireball(self):
+		if self.player.rect.colliderect(self.boss.fireball_rect) and not self.player.shield:
+			self.player.life -= 1
+			self.boss.fireball_bol = False
+			
 	def handle_input_keyboard(self):
 
 		keys = pygame.key.get_pressed()
@@ -271,113 +312,114 @@ class Level():
 
 		moving = False
 
-		if joystick.get_button(3): #apri inventario con tasto y
-			if not self.g_pressed:
-				if self.game_state == "gameplay":
-					self.game_state = "inventory"
-					self.inventory.populate_from_bag(self.player.bag)
-				elif self.game_state == "inventory":
-					self.game_state = "gameplay"
-				print("Stato gioco:", self.game_state)
-				self.g_pressed = True
-		else:
-			self.g_pressed = False
+		if not self.paused:
+			if joystick.get_button(3): #apri inventario con tasto y
+				if not self.g_pressed:
+					if self.game_state == "gameplay":
+						self.game_state = "inventory"
+						self.inventory.populate_from_bag(self.player.bag)
+					elif self.game_state == "inventory":
+						self.game_state = "gameplay"
+					print("Stato gioco:", self.game_state)
+					self.g_pressed = True
+			else:
+				self.g_pressed = False
 
-		if self.game_state == "gameplay" :
-			if joystick:
-			# Movimento in 4 direzioni
-				axis_x = joystick.get_axis(0)
-				axis_y = joystick.get_axis(1)
-				moving = False
-				if axis_x > 0.1:  # Destra
-					self.player.rect.x += self.player.speed
-					self.player.direction = "right" 
-					self.player.collision("horizontal")
-					moving = True
-				elif axis_x < -0.1:  # Sinistra
-					self.player.rect.x -= self.player.speed
-					self.player.direction = "left" 
-					self.player.collision("horizontal")
-					moving = True
-				elif axis_y > 0.1:  # Giù
-					self.player.rect.y += self.player.speed
-					self.player.direction = "down" 
-					self.player.collision("vertical")
-					moving = True
-				elif axis_y < -0.1:  # Su
-					self.player.rect.y -= self.player.speed	
-					self.player.direction = "up" 
-					self.player.collision("vertical")
-					moving = True
-				elif joystick.get_button(2): #raccogli oggetto tasto b
-					if self.market_status:
-						if self.seller.talking:
-							if self.player.coin_count >= 10:
-								current_time_buy = pygame.time.get_ticks() 
-								cooldown_buy = 400
-								if len(self.player.bag) <= 15:
-									if current_time_buy - self.seller.last_buy > cooldown_buy:
-										potion = self.seller.trade()
-										self.player.bag.append(potion)
-										self.player.coin_count -= 10  
-										self.seller.last_buy = current_time_buy
-					else:
-						for item in self.pickup_items_grups:
-							if self.player.rect.colliderect(item):
-								if len(self.player.bag) <= 15:
-									self.pickup_item_sound.play()
-									self.player.bag.append(item)
-									self.picked_items.append(item)
-									item.kill()						
-								else:
-									print("inventario pieno")
-				elif joystick.get_button(0): #parla con il mercante tasto x
-					current_time_talk = pygame.time.get_ticks()
-					cooldown_talk = 200
-					if self.market_status:
-						if self.player.rect.colliderect(self.seller.hitbox):
-							if current_time_talk - self.seller.last_talk > cooldown_talk:
-								self.seller.talking = not self.seller.talking
-								
-								self.seller.last_talk = current_time_talk
+			if self.game_state == "gameplay" :
+				if joystick:
+				# Movimento in 4 direzioni
+					axis_x = joystick.get_axis(0)
+					axis_y = joystick.get_axis(1)
+					moving = False
+					if axis_x > 0.1:  # Destra
+						self.player.rect.x += self.player.speed
+						self.player.direction = "right" 
+						self.player.collision("horizontal")
+						moving = True
+					elif axis_x < -0.1:  # Sinistra
+						self.player.rect.x -= self.player.speed
+						self.player.direction = "left" 
+						self.player.collision("horizontal")
+						moving = True
+					elif axis_y > 0.1:  # Giù
+						self.player.rect.y += self.player.speed
+						self.player.direction = "down" 
+						self.player.collision("vertical")
+						moving = True
+					elif axis_y < -0.1:  # Su
+						self.player.rect.y -= self.player.speed	
+						self.player.direction = "up" 
+						self.player.collision("vertical")
+						moving = True
+					elif joystick.get_button(2): #raccogli oggetto tasto b
+						if self.market_status:
+							if self.seller.talking:
+								if self.player.coin_count >= 10:
+									current_time_buy = pygame.time.get_ticks() 
+									cooldown_buy = 400
+									if len(self.player.bag) <= 15:
+										if current_time_buy - self.seller.last_buy > cooldown_buy:
+											potion = self.seller.trade()
+											self.player.bag.append(potion)
+											self.player.coin_count -= 10  
+											self.seller.last_buy = current_time_buy
+						else:
+							for item in self.pickup_items_grups:
+								if self.player.rect.colliderect(item):
+									if len(self.player.bag) <= 15:
+										self.pickup_item_sound.play()
+										self.player.bag.append(item)
+										self.picked_items.append(item)
+										item.kill()						
+									else:
+										print("inventario pieno")
+					elif joystick.get_button(0): #parla con il mercante tasto x
+						current_time_talk = pygame.time.get_ticks()
+						cooldown_talk = 200
+						if self.market_status:
+							if self.player.rect.colliderect(self.seller.hitbox):
+								if current_time_talk - self.seller.last_talk > cooldown_talk:
+									self.seller.talking = not self.seller.talking
+									
+									self.seller.last_talk = current_time_talk
 
-						
-			# Attacco con il tasto a
-			if joystick.get_button(1) and not self.player.hit:
+							
+				# Attacco con il tasto a
+				if joystick.get_button(1) and not self.player.hit:
+					current_time = pygame.time.get_ticks()
+					if current_time - self.player.last_hit > 650: #delay tra ogni colpo
+						self.sword_swing.play()
+						self.player.hit = True
+						self.player.last_hit = current_time
+
+
+			if self.game_state == "inventory":
 				current_time = pygame.time.get_ticks()
-				if current_time - self.player.last_hit > 650: #delay tra ogni colpo
-					self.sword_swing.play()
-					self.player.hit = True
-					self.player.last_hit = current_time
-
-
-		if self.game_state == "inventory":
-			current_time = pygame.time.get_ticks()
-			cooldown = 200
-			if current_time - self.inventory.move_time > cooldown:			
-				if joystick.get_button(5):  # Destra
-					self.inventory.handle_input("right")
-					self.inventory.move_time = current_time
-				if joystick.get_button(4):  # sinistra
-					self.inventory.handle_input("left")
-					self.inventory.move_time = current_time
-				if joystick.get_button(0):  # togli oggetto 
-					remove_cooldown = 200
-					current_time_remove = pygame.time.get_ticks()
-					if current_time_remove - self.inventory.last_remove_time > remove_cooldown:
-						if self.inventory.remove_item() == "key":
-							self.player.key_counter -= 1
-						self.inventory.last_remove_time = current_time_remove
-				if joystick.get_button(1):  # usa oggetto tastk a
-					use_cooldown = 200
-					current_time_use = pygame.time.get_ticks()
-					if current_time_use - self.inventory.last_use_time > use_cooldown:
-						item = self.inventory.use_item()
-						self.apply_item_to_player(item)
-						self.inventory.last_use_time = current_time_use
-				
-		if not self.player.hit:
-			self.player.animation_walk(moving,self.player.walk_right,self.player.walk_back,self.player.walk_front)
+				cooldown = 200
+				if current_time - self.inventory.move_time > cooldown:			
+					if joystick.get_button(5):  # Destra
+						self.inventory.handle_input("right")
+						self.inventory.move_time = current_time
+					if joystick.get_button(4):  # sinistra
+						self.inventory.handle_input("left")
+						self.inventory.move_time = current_time
+					if joystick.get_button(0):  # togli oggetto 
+						remove_cooldown = 200
+						current_time_remove = pygame.time.get_ticks()
+						if current_time_remove - self.inventory.last_remove_time > remove_cooldown:
+							if self.inventory.remove_item() == "key":
+								self.player.key_counter -= 1
+							self.inventory.last_remove_time = current_time_remove
+					if joystick.get_button(1):  # usa oggetto tastk a
+						use_cooldown = 200
+						current_time_use = pygame.time.get_ticks()
+						if current_time_use - self.inventory.last_use_time > use_cooldown:
+							item = self.inventory.use_item()
+							self.apply_item_to_player(item)
+							self.inventory.last_use_time = current_time_use
+					
+			if not self.player.hit:
+				self.player.animation_walk(moving,self.player.walk_right,self.player.walk_back,self.player.walk_front)
 
 	def import_sounds(self):
 		self.sword_swing = pygame.mixer.Sound("assets/sound/player_sound/sword_sound.mp3")
@@ -386,8 +428,6 @@ class Level():
 		self.death_slime.set_volume(0.1)  
 		self.key_drop = pygame.mixer.Sound("assets/sound/enemy_sound/key_drop.mp3")
 		self.key_drop.set_volume(0.1)  
-		# self.step_player = pygame.mixer.Sound("assets/sound/player_sound/step.mp3")
-		# self.step_player.set_volume(0.1)  
 		self.pickup_item_sound = pygame.mixer.Sound("assets/sound/player_sound/pickup.mp3")
 		self.pickup_item_sound.set_volume(0.1)  
 
@@ -398,8 +438,6 @@ class Level():
 
 	def manager_HUD(self):
 		self.hud.draw(self.game_surface)
-		if self.dungeon_status:
-			self.hud.draw_boss_life(self.game_surface)
 
 		if self.game_state == "inventory":
 			self.inventory.update()
@@ -412,10 +450,18 @@ class Level():
 		if self.market_status:
 			if not self.seller.talking:
 				self.hud.draw_market_ui()
+				
 
 		if self.game_state == "gameplay":
 			if  not self.market_status:
 				self.hud.draw_game_ui()
+
+			if self.paused:
+				self.hud.draw_menu_ui()
+
+
+		if self.dungeon_status:
+			self.hud.draw_boss_life()
 
 		if self.player.shield:
 			self.hud.draw_item_text("shield")
@@ -481,6 +527,7 @@ class Level():
 
 	def setup_dungeon(self,dungeon_path):
 		self.boss = Boss(self.player)
+		self.hud.boss = self.boss
 
 		self.clear_sprites()
 		pygame.mixer.music.load("assets/sound/soundtrack/dungeon_song.mp3")
@@ -563,35 +610,7 @@ class Level():
 			self.player.speed = 3
 
 	#collsione del player con i mostri
-	def collide_player_to_monster(self):
- 	# Se il player sta attaccando
-			collided_monsters = pygame.sprite.spritecollide(self.player, self.monster_sprites, False)
-			for monster in collided_monsters:
-				if self.player.hit: 
-					self.last_monster_death_rect = monster.rect
-					monster.life -= 1  # Riduci la vita del mostro colpito
-					self.death_slime.play()
-					self.player.coin_count += 0.5
-					if monster.drop_key():
-						self.key_drop_status = True
-						self.key_spawn_time = pygame.time.get_ticks() 
-						print("chiave ottenuta")
-						self.player.key_counter += 1
-						self.player.bag.append(self.key)
 
-	def collide_player_to_boss(self):
-		if self.dungeon_status:
-			if self.player.rect.colliderect(self.boss.rect):
-				if self.player.hit and not self.boss.just_hit:
-					self.boss.life -= 1
-					self.death_slime.play()
-					self.boss.just_hit = True
-
-
-	def collide_player_to_fireball(self):
-		if self.player.rect.colliderect(self.boss.fireball_rect) and not self.player.shield:
-			self.player.life -= 1
-			self.boss.fireball_bol = False
 
 	def render_drop_key(self):
 		if self.key_drop_status:
@@ -613,6 +632,7 @@ class Level():
 		
 		#HUD MANAGER
 		self.manager_HUD()
+
 
 		#ITEM DROP MANAGER
 		self.manager_drop_item()

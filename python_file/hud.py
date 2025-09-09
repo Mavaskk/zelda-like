@@ -22,9 +22,10 @@ class Hud(pygame.sprite.Sprite):
 		self.life_6 = pygame.image.load('../zelda-like/assets/hud/boss_life/life_6.png').convert_alpha()
 		self.life_7 = pygame.image.load('../zelda-like/assets/hud/boss_life/life_7.png').convert_alpha()
 		self.life_8 = pygame.image.load('../zelda-like/assets/hud/boss_life/life_8.png').convert_alpha()
-		self.game_complete_ui = self.load_and_scale("../zelda-like/assets/hud/ui_button/state_game/complete_ui.png",(300,40))
+		self.game_complete_ui = self.load_and_scale("../zelda-like/assets/hud/ui_button/state_game/complete_ui.png",(370,40))
 		self.inventory_complete_ui = self.load_and_scale("../zelda-like/assets/hud/ui_button/state_inventory/inventory_ui.png",(300,40))
 		self.x_talk = self.load_and_scale("../zelda-like/assets/hud/ui_button/state_game/x_talk.png",(70,25))
+		self.x_select = self.load_and_scale("../zelda-like/assets/hud/ui_button/state_game/x_select.png",(70,25))
 		self.b_buy = self.load_and_scale("../zelda-like/assets/hud/ui_button/state_game/b_buy.png",(70,25))
 		self.story_sprite = pygame.image.load('../zelda-like/assets/hud/story.png').convert_alpha()
 
@@ -54,7 +55,7 @@ class Hud(pygame.sprite.Sprite):
 
 
 
-	def draw_boss_life(self,screen):
+	def draw_boss_life(self):
 		boss_life_sprites = [
 			pygame.transform.scale(img, (182, 32)) 
 			for img in [
@@ -66,6 +67,7 @@ class Hud(pygame.sprite.Sprite):
 		
 		# ciclo fino al valore di vita attuale del boss
 		for i in range(self.boss.life):
+			
 			if i < len(boss_life_sprites):  # evita index error se vita > sprite disponibili
 				self.screen.blit(boss_life_sprites[i], self.boss_rect)
 
@@ -81,12 +83,16 @@ class Hud(pygame.sprite.Sprite):
 	
 	
 	def draw_game_ui(self):
-		rect = pygame.Rect(170, 410, 64, 64)
+		rect = pygame.Rect(120, 410, 64, 64)
 		self.screen.blit(self.game_complete_ui,rect)
 
 	def draw_market_ui(self):
 		rect = pygame.Rect(300, 415, 64, 64)
 		self.screen.blit(self.x_talk,rect)
+
+	def draw_menu_ui(self):
+		rect = pygame.Rect(225, 350, 64, 64)
+		self.screen.blit(self.x_select,rect)
 
 	
 
